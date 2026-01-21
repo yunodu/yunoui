@@ -4,7 +4,7 @@
   <img src="Media/Banner/yui.png" alt="yunoUI Banner">
 </p>
 
-**yunoUI** is my own changes to existing World of Warcraft Addons. This package aggregates specific addons and profiles.
+**yunoUI** is my own changes to existing World of Warcraft Addons. This package aggregates specific addons and profiles to create a cohesive UI experience.
 
 ## 📦 Required Addons
 
@@ -13,7 +13,8 @@ To use yunoUI, you will need the following addons installed.
 ### via WowUp
 You can install the core list using the following WowUp import string:
 > [Click to view WowUp Import String](Profiles/wowup.txt)
-(My Addons -> Import/Export Addon -> Import)
+>
+> *(In WowUp: My Addons -> Import/Export Addon -> Import)*
 
 ### Manual List
 * **QuaziiUI_Midnight** *(Note: You will need to get this elsewhere, NOT provided here. Please support Quazii by subscribing to him)*
@@ -78,7 +79,14 @@ Follow these steps in order to import the profiles.
 5.  *(Optional)* Repeat for the **Heal Profile String** if needed.
 6.  Close the window.
 
-### 5. Finalize & Edit Mode
+### 5. yunoUI Addon
+1.  Open config: `/yui` (or `/yunoui`)
+2.  Go to **Profiles** (or Import).
+3.  Paste the **yunoUI Core Profile String**.
+4.  Click **Import/Accept**.
+5.  Close the window.
+
+### 6. Finalize & Edit Mode
 1.  Type `/reload` to save current settings.
 2.  Open Edit Mode: `Esc` -> **Edit Mode**.
 3.  Click **Import**.
