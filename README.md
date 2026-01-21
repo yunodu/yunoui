@@ -103,9 +103,9 @@ Click the links below to view the raw import strings. Copy the content of the fi
 
 | Addon | Profile Type | Link |
 | :--- | :--- | :--- |
-| **QuaziiUI** | Core Profile | [View String](profiles/quazii.txt) |
-| **Details!** | Damage Meter | [View String](profiles/details.txt) |
-| **Platynator** | Nameplates | [View String](profiles/platynator.txt) |
-| **Danders Frames** | DPS Profile | [View String](profiles/danderframesdps.txt) |
-| **Danders Frames** | Heal Profile | [View String](profiles/danderframesheal.txt) |
-| **Blizzard** | Edit Mode Layout | [View String](profiles/editmode.txt) |
+| **QuaziiUI** | Core Profile | [View String](Profiles/quazii.txt) |
+| **Details!** | Damage Meter | [View String](Profiles/details.txt) |
+| **Platynator** | Nameplates | [View String](Profiles/platynator.txt) |
+| **Danders Frames** | DPS Profile | [View String](Profiles/danderframesdps.txt) |
+| **Danders Frames** | Heal Profile | [View String](Profiles/danderframesheal.txt) |
+| **Blizzard** | Edit Mode Layout | [View String](Profiles/editmode.txt) |
