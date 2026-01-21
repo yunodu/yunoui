@@ -1,6 +1,8 @@
 # yunoUI
 
-![yunoUI Banner](Media/Banner/yui.png)
+<p align="center">
+  <img src="Media/Banner/yui.png" alt="yunoUI Banner">
+</p>
 
 **yunoUI** is my own changes to existing World of Warcraft Addons. This package aggregates specific addons and profiles.
 
