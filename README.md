@@ -10,7 +10,7 @@ To use yunoUI, you will need the following addons installed.
 
 ### via WowUp
 You can install the core list using the following WowUp import string:
-> [Click to view WowUp Import String](profiles/yunoui.txt)
+> [Click to view WowUp Import String](Profiles/wowup.txt)
 
 ### Manual List
 * **QuaziiUI_Midnight** *(Note: You will need to get this elsewhere, NOT provided here. Please support Quazii by subscribing to him)*
