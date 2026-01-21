@@ -1,2 +1,111 @@
-# yunoui
-yunoUI
+# yunoUI
+
+![yunoUI Banner](Media/Banner/yui.png)
+
+**yunoUI** is my own changes to existing World of Warcraft Addons. This package aggregates specific addons and profiles.
+
+## 📦 Required Addons
+
+To use yunoUI, you will need the following addons installed.
+
+### via WowUp
+You can install the core list using the following WowUp import string:
+> [Click to view WowUp Import String](profiles/yunoui.txt)
+
+### Manual List
+* **QuaziiUI_Midnight** *(Note: You will need to get this elsewhere, NOT provided here. Please support Quazii by subscribing to him)*
+* **Platynator**
+* **BugGrabber**
+* **BugSack**
+* **Details! Damage Meter**
+* **yunoUI** (This addon)
+* **Danders Frames**
+
+---
+
+## 🛠️ Installation Guide
+
+### Step 1: Preparation (First Time Only)
+*If this is your very first time installing yunoUI on a fresh character:*
+
+1.  Navigate to your WoW `_retail_` folder.
+2.  **Delete (or backup)** your existing `Interface` and `WTF` folders to ensure a clean install.
+3.  Launch World of Warcraft.
+
+### Step 2: Blizzard Settings
+Before configuring addons, set these in-game options:
+
+* **Action Bars:** `Esc` -> Options -> Action Bars -> **Enable Bars 2 through 6**.
+* **Resource Display:** `Esc` -> Options -> Combat -> **Uncheck** "Personal Resource Display".
+* **Boss Warnings:** `Esc` -> Options -> Gameplay -> **Check** "Boss Warning" and "Boss Timeline".
+
+---
+
+## ⚙️ Configuration (First Time Setup)
+
+Follow these steps in order to import the profiles.
+
+### 1. Quazii UI
+1.  Open the config: type `/qui`
+2.  Go to **Import/Export**.
+3.  Paste the **Quazii Profile String** (linked below).
+4.  Click **Import**.
+5.  Close the window and type `/reload`.
+
+### 2. Details! Damage Meter
+1.  Open config: `/details config`
+2.  Go to **Options** -> **Profiles** -> **Import Profile**.
+3.  Paste the **Details Profile String**.
+4.  Name the profile (e.g., "yunoMain") and click **Okay**.
+5.  **Crucial Step:** At the bottom of the window, check **"Use on all characters"**.
+6.  Select your new profile from the list and close the window.
+
+### 3. Platynator
+1.  Open config: `/platy`
+2.  Click **Import**.
+3.  Paste the **Platynator String**.
+4.  Name the profile and click **Okay**.
+5.  Close the window.
+
+### 4. Danders Frames
+1.  Open config: `/df`
+2.  Go to **Profiles** -> **Import/Export**.
+3.  Paste the **DPS Profile String**.
+4.  Name it and click **Okay**.
+5.  *(Optional)* Repeat for the **Heal Profile String** if needed.
+6.  Close the window.
+
+### 5. Finalize & Edit Mode
+1.  Type `/reload` to save current settings.
+2.  Open Edit Mode: `Esc` -> **Edit Mode**.
+3.  Click **Import**.
+4.  Paste the **Edit Mode String**.
+5.  Name the profile and click **Import**.
+6.  **⚠️ IMPORTANT:** Do **NOT** click the red "Save" button at the bottom. Click the **"Save and Exit"** button at the top of the screen.
+7.  Type `/reload` one last time.
+
+---
+
+## 🔁 Alt Character Setup
+*For every new character you log into after the initial installation:*
+
+1.  Log in to the character.
+2.  **Enable Action Bars:** `Esc` -> Options -> Action Bars -> Ensure 2-6 are enabled.
+3.  **Load Layout:** `Esc` -> Edit Mode -> Select your imported yunoUI profile from the dropdown.
+4.  Type `/reload`.
+5.  **GG EZ** — You're ready to play.
+
+---
+
+## 📂 Import Strings
+
+Click the links below to view the raw import strings. Copy the content of the file to import.
+
+| Addon | Profile Type | Link |
+| :--- | :--- | :--- |
+| **QuaziiUI** | Core Profile | [View String](profiles/quazii.txt) |
+| **Details!** | Damage Meter | [View String](profiles/details.txt) |
+| **Platynator** | Nameplates | [View String](profiles/platynator.txt) |
+| **Danders Frames** | DPS Profile | [View String](profiles/danderframesdps.txt) |
+| **Danders Frames** | Heal Profile | [View String](profiles/danderframesheal.txt) |
+| **Blizzard** | Edit Mode Layout | [View String](profiles/editmode.txt) |
