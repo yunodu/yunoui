@@ -72,7 +72,12 @@ Follow these steps in order to import the profiles.
 5.  Close the window.
 
 ### 4. Danders Frames
-/// not implemented for now, theres a bug with profile imports in Danders Frames
+1.  Open config: `/df`
+2.  Go to **Profiles** -> **Import/Export**.
+3.  Paste the **DPS Profile String**.
+4.  Name it and click **Okay**.
+5.  *(Optional)* Repeat for the **Heal Profile String** if needed.
+6.  Close the window.
 
 ### 5. yunoUI Addon
 1.  Open config: `/yui` (or `/yunoui`)
