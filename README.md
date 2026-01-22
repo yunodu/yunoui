@@ -1,7 +1,7 @@
 # yunoUI
 
 <p align="center">
-  <img src="Media/Banner/yui.pxng" alt="yunoUI Banner">
+  <img src="Media/Banner/yui.png" alt="yunoUI Banner">
 </p>
 
 **yunoUI** is my own changes to existing World of Warcraft Addons. This package aggregates specific addons and profiles to create a cohesive UI experience. This is optimized for **1440p ultrawide (3440x1440)**. If your resolution differs you most likely will have to resize UI elements.
