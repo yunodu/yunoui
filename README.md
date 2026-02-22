@@ -1,7 +1,7 @@
 <div align="center">
 
   <a href="https://yuno.wtf">
-    <img src="yui.png" alt="Yuno UI" width="600">
+    <img src="yui.png" alt="Yuno UI" width="400">
   </a>
 
   <br><br>
