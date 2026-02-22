@@ -1,0 +1,36 @@
+{
+    "Lua.runtime.version": "Lua 5.1",
+    "Lua.runtime.builtin": {
+        "basic": "disable",
+        "debug": "disable",
+        "io": "disable",
+        "math": "disable",
+        "os": "disable",
+        "package": "disable",
+        "string": "disable",
+        "table": "disable",
+        "utf8": "disable"
+    },
+    "Lua.workspace.library": [
+        "c:\\Users\\patri\\.cursor\\extensions\\ketho.wow-api-0.22.2\\Annotations\\Core"
+    ],
+    "Lua.diagnostics.globals": [
+        "StaticPopupDialogs",
+        "StaticPopup_Show",
+        "ReloadUI",
+        "RAID_CLASS_COLORS",
+        "UIDropDownMenu_SetWidth",
+        "UIDropDownMenu_Initialize",
+        "UIDropDownMenu_SetText",
+        "UIDropDownMenu_AddButton",
+        "UIDropDownMenu_CreateInfo",
+        "CLASS_ICON_TCOORDS",
+        "GameTooltipStatusBar",
+        "GameTooltip_Hide",
+        "CLASS_SORT_ORDER",
+        "FCF_GetNumActiveChatFrames",
+        "CloseDropDownMenus",
+        "UIDropDownMenu_GetCurrentDropDown",
+        "ToggleDropDownMenu"
+    ]
+}

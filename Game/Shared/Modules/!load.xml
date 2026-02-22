@@ -1,0 +1,9 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+    <Include file="Setup\!load.xml"/>
+    <Include file="Media\!load.xml"/>
+    <Include file="Options\!load.xml"/>
+    <Include file="Cooldowns\!load.xml"/>
+    <Include file="Portraits\!load.xml"/>
+    <Include file="MouseRing\!load.xml"/>
+    <Include file="Crosshair\!load.xml"/>
+</Ui>

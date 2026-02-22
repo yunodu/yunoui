@@ -1,0 +1,1 @@
+-- No export format; we set in code (Setup\AddOns\CooldownManagerCentered.lua)
