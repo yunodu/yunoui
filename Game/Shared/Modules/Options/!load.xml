@@ -1,4 +1,0 @@
-<Ui xmlns="http://www.blizzard.com/wow/ui/">
-    <Script file="Options.lua"/>
-    <Script file="OptionsElvUI.lua"/>
-</Ui>
