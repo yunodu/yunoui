@@ -6,7 +6,7 @@
 
   <br><br>
 
-  ## A ElvUI-based World of Warcraft User Interface.
+  ## A EllesmereUI-based World of Warcraft User Interface.
   
   **[Please visit yuno.wtf or click the logo for downloads and installation instructions ➜](https://yuno.wtf)**
 
