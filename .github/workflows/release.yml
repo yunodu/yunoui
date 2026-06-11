@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Package addon
+        run: |
+          mkdir -p package/yuno
+          git archive \
+            --format=zip \
+            --prefix=yuno/ \
+            --output=package/yuno.zip \
+            HEAD \
+            CHANGELOG.md \
+            CooldownLayouts.lua \
+            ProfileStrings.lua \
+            UI.lua \
+            yuno.lua \
+            yuno.toc \
+            Media
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: package/yuno.zip
+          generate_release_notes: true
