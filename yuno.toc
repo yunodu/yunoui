@@ -2,7 +2,7 @@
 ## Title: yuno
 ## Notes: Runtime patches for EllesmereUI preferences, unit frames, and cooldown layouts.
 ## Author: yuno
-## Version: 0.1.0
+## Version: 2.9
 ## Dependencies: EllesmereUI, EllesmereUIUnitFrames
 ## OptionalDeps: EllesmereUIChat, EllesmereUIBlizzardSkin, EllesmereUIDamageMeters, EllesmereUIRaidFrames, BigWigs, Blinkiis_Portraits, EXBoss
 ## SavedVariables: YunoDB
