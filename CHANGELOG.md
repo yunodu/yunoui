@@ -1,3 +1,8 @@
+## yuno 2.9
+
+- Added EXBoss profile import.
+- Updated the bundled BigWigs import profile to accompany for EXBoss.
+
 ## yuno 2.8
 
 - Added a yuno settings option to disable EllesmereUI color syncing.

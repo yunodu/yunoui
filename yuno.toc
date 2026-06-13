@@ -4,7 +4,7 @@
 ## Author: yuno
 ## Version: 0.1.0
 ## Dependencies: EllesmereUI, EllesmereUIUnitFrames
-## OptionalDeps: EllesmereUIChat, EllesmereUIBlizzardSkin, EllesmereUIDamageMeters, EllesmereUIRaidFrames, BigWigs, Blinkiis_Portraits
+## OptionalDeps: EllesmereUIChat, EllesmereUIBlizzardSkin, EllesmereUIDamageMeters, EllesmereUIRaidFrames, BigWigs, Blinkiis_Portraits, EXBoss
 ## SavedVariables: YunoDB
 
 CooldownLayouts.lua

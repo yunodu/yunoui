@@ -69,6 +69,22 @@ local idleFadeTouchedFrames = {}
 local raidFrameHealthCache = setmetatable({}, { __mode = "k" })
 local raidFrameBackgroundCache = setmetatable({}, { __mode = "k" })
 local PROFILE_PROMPT_VERSION = 1
+local EXBOSS_IMPORT_SLOT_KEYS = {
+    "raid_tank",
+    "raid_dps",
+    "raid_heal",
+    "mplus_tank",
+    "mplus_dps",
+    "mplus_heal",
+}
+local EXBOSS_IMPORT_AUTHOR_SUFFIXES = {
+    raid_tank = "\229\157\166\229\133\139",
+    raid_dps = "DPS",
+    raid_heal = "\230\178\187\231\150\151",
+    mplus_tank = "\229\157\166\229\133\139",
+    mplus_dps = "DPS",
+    mplus_heal = "\230\178\187\231\150\151",
+}
 
 local function Print(msg)
     DEFAULT_CHAT_FRAME:AddMessage("|cff0cd29fyuno:|r " .. tostring(msg))
@@ -454,6 +470,60 @@ local function ImportBlinkiisPortraitsProfile()
     end
 
     return true, "Blinkii's Portraits profile imported as yuno"
+end
+
+local function ImportEXBossProfile()
+    local importString = YunoProfiles and YunoProfiles.exboss
+    if type(importString) ~= "string" or importString == "" then
+        return false, "missing EXBoss profile string"
+    end
+
+    TryLoadAddon("EXBoss")
+
+    local IE = ExBoss and ExBoss.Voice and ExBoss.Voice.ImportExport
+    if not IE or type(IE.DecodePayload) ~= "function" or type(IE.GetImportSummary) ~= "function" or type(IE.Import) ~= "function" then
+        return false, "EXBoss import API is not available"
+    end
+
+    local payload, decodeErr = IE:DecodePayload(importString)
+    if not payload then
+        return false, "EXBoss import string is invalid: " .. tostring(decodeErr)
+    end
+
+    local summary, summaryErr = IE:GetImportSummary(payload)
+    if not summary then
+        return false, "EXBoss import summary failed: " .. tostring(summaryErr)
+    end
+
+    local importSlots = {}
+    local hasSlot = false
+    local availableSlots = type(summary.slotAvailability) == "table" and summary.slotAvailability or {}
+    for _, slotKey in ipairs(EXBOSS_IMPORT_SLOT_KEYS) do
+        if availableSlots[slotKey] == true then
+            importSlots[slotKey] = true
+            hasSlot = true
+        end
+    end
+
+    local options = {
+        importAppearance = summary.hasAppearance == true,
+        importTrashCD = summary.hasTrashCD == true,
+        importSlots = importSlots,
+        namePrefix = "yuno",
+    }
+    if not options.importAppearance and not options.importTrashCD and not hasSlot then
+        return false, "EXBoss import string has no supported profile sections"
+    end
+
+    local ok, imported, err = pcall(IE.Import, IE, payload, options)
+    if not ok then
+        return false, tostring(imported)
+    end
+    if not imported then
+        return false, tostring(err or "EXBoss import failed")
+    end
+
+    return true, "EXBoss profile imported as yuno"
 end
 
 local function EnsureDB()
@@ -1336,6 +1406,29 @@ local function BlinkiisPortraitsProfileExists(profileName)
     return db and type(db.profiles) == "table" and type(db.profiles[profileName]) == "table"
 end
 
+local function EXBossProfileExists(profileName)
+    local wanted = tostring(profileName or ""):lower()
+    if wanted == "" then return false end
+
+    local db = type(EXBossDataDB) == "table" and type(EXBossDataDB.bossConfig) == "table" and EXBossDataDB.bossConfig or nil
+    local userOverrides = db and type(db.userOverrides) == "table" and db.userOverrides or nil
+    if not userOverrides then return false end
+
+    for _, slotKey in ipairs(EXBOSS_IMPORT_SLOT_KEYS) do
+        local slotRoot = type(userOverrides[slotKey]) == "table" and userOverrides[slotKey] or nil
+        if slotRoot then
+            for authorKey, authorRow in pairs(slotRoot) do
+                local key = tostring(authorKey or "")
+                if key:lower():sub(1, #wanted) == wanted and type(authorRow) == "table" then
+                    return true
+                end
+            end
+        end
+    end
+
+    return false
+end
+
 local function EllesmereProfileExists(profileName)
     return type(EllesmereUIDB) == "table"
         and type(EllesmereUIDB.profiles) == "table"
@@ -1346,10 +1439,12 @@ local function HasInstalledYunoProfiles()
     TryLoadAddon("EllesmereUI")
     TryLoadAddon("BigWigs")
     TryLoadAddon("Blinkiis_Portraits")
+    TryLoadAddon("EXBoss")
 
     return EllesmereProfileExists("yuno")
         or BigWigsProfileExists("yuno")
         or BlinkiisPortraitsProfileExists("yuno")
+        or EXBossProfileExists("yuno")
         or FindEditModeLayoutIndex("yuno") ~= nil
 end
 
@@ -1424,6 +1519,82 @@ local function ApplyExistingBlinkiisPortraitsProfile(applied, missing, failed)
     applied[#applied + 1] = "Blinkii's Portraits"
 end
 
+local function FindEXBossYunoAuthor(slotKey)
+    local db = type(EXBossDataDB) == "table" and type(EXBossDataDB.bossConfig) == "table" and EXBossDataDB.bossConfig or nil
+    local slotRoot = db and type(db.userOverrides) == "table" and type(db.userOverrides[slotKey]) == "table" and db.userOverrides[slotKey] or nil
+    if not slotRoot then return nil end
+
+    local selected = db.slotSelection and db.slotSelection[slotKey]
+    if type(selected) == "string" and selected:lower():sub(1, 4) == "yuno" and type(slotRoot[selected]) == "table" then
+        return selected
+    end
+
+    local suffix = EXBOSS_IMPORT_AUTHOR_SUFFIXES[slotKey]
+    local expected = suffix and ("yuno-" .. suffix):lower() or nil
+    if expected then
+        for authorKey, authorRow in pairs(slotRoot) do
+            local key = tostring(authorKey or "")
+            if key:lower() == expected and type(authorRow) == "table" then
+                return key
+            end
+        end
+    end
+
+    for authorKey, authorRow in pairs(slotRoot) do
+        local key = tostring(authorKey or "")
+        if key:lower():sub(1, 4) == "yuno" and type(authorRow) == "table" then
+            return key
+        end
+    end
+
+    return nil
+end
+
+local function ApplyExistingEXBossProfile(applied, missing, failed)
+    TryLoadAddon("EXBoss")
+
+    if not EXBossProfileExists("yuno") then
+        missing[#missing + 1] = "EXBoss"
+        return
+    end
+
+    local bossConfig = ExBoss and (ExBoss.BossConfig or (ExBoss.Modules and ExBoss.Modules.Boss))
+    local db = type(EXBossDataDB) == "table" and type(EXBossDataDB.bossConfig) == "table" and EXBossDataDB.bossConfig or nil
+    if not bossConfig and not db then
+        failed[#failed + 1] = "EXBoss: profile database is not available"
+        return
+    end
+
+    local appliedAny = false
+    for _, slotKey in ipairs(EXBOSS_IMPORT_SLOT_KEYS) do
+        local authorKey = FindEXBossYunoAuthor(slotKey)
+        if authorKey then
+            if bossConfig and type(bossConfig.SetSelectedAuthor) == "function" then
+                local ok, err = pcall(bossConfig.SetSelectedAuthor, bossConfig, slotKey, authorKey)
+                if not ok then
+                    failed[#failed + 1] = "EXBoss: " .. tostring(err)
+                    return
+                end
+            elseif db then
+                db.slotSelection = db.slotSelection or {}
+                db.slotSelection[slotKey] = authorKey
+            end
+            appliedAny = true
+        end
+    end
+
+    if not appliedAny then
+        missing[#missing + 1] = "EXBoss"
+        return
+    end
+
+    if bossConfig and type(bossConfig.PublishRuntimeSelection) == "function" then
+        pcall(bossConfig.PublishRuntimeSelection, bossConfig)
+    end
+
+    applied[#applied + 1] = "EXBoss"
+end
+
 local function ApplyExistingEditModeLayout(applied, missing, failed)
     if InCombatLockdown and InCombatLockdown() then
         failed[#failed + 1] = "Edit Mode: cannot apply in combat"
@@ -1462,6 +1633,7 @@ local function ApplyInstalledProfilesToCharacter(markApplied)
     ApplyExistingEllesmereProfile(applied, missing, failed)
     ApplyExistingBigWigsProfile(applied, missing, failed)
     ApplyExistingBlinkiisPortraitsProfile(applied, missing, failed)
+    ApplyExistingEXBossProfile(applied, missing, failed)
     ApplyExistingEditModeLayout(applied, missing, failed)
 
     if #applied > 0 and #failed == 0 and markApplied then
@@ -2557,6 +2729,12 @@ local function ShowCooldownImportFrame(initialTab)
                 run = ImportBlinkiisPortraitsProfile,
             },
             {
+                title = "EXBoss",
+                body = "Imports the yuno EXBoss profile, including available settings, trash cooldowns, and boss slots.",
+                action = "Import EXBoss",
+                run = ImportEXBossProfile,
+            },
+            {
                 title = "Blizzard Edit Mode",
                 body = "Imports the yuno Blizzard Edit Mode layout.\n\nAny existing layout named yuno is removed first so this step is repeatable.",
                 action = "Import Edit Mode",
@@ -2776,7 +2954,7 @@ local function ShowHelp()
         ", opacity=" .. tostring(YunoDB.healthBarOpacity or 85) .. "%" ..
         ", tint=" .. math.floor((YunoDB.tint or 0.75) * 100 + 0.5) .. "%")
     Print("/yuno opens settings, /yuno help shows this list")
-    Print("/yuno on|off, /yuno bg on|off, /yuno dark on|off, /yuno theme on|off, /yuno idlefade on|off, /yuno chat right|left, /yuno cdm import, /yuno install ellesmere|bigwigs|editmode|blinkii|settings, /yuno profiles, /yuno cvars, /yuno fct on|off, /yuno fps, /yuno graphics yuno, /yuno tint 75, /yuno opacity 85, /yuno dmpos, /yuno media, /yuno apply")
+    Print("/yuno on|off, /yuno bg on|off, /yuno dark on|off, /yuno theme on|off, /yuno idlefade on|off, /yuno chat right|left, /yuno cdm import, /yuno install ellesmere|bigwigs|editmode|blinkii|exboss|settings, /yuno profiles, /yuno cvars, /yuno fct on|off, /yuno fps, /yuno graphics yuno, /yuno tint 75, /yuno opacity 85, /yuno dmpos, /yuno media, /yuno apply")
 end
 
 SLASH_YUNO1 = "/yuno"
@@ -2886,6 +3064,9 @@ SlashCmdList.YUNO = function(msg)
         elseif arg == "blinkii" or arg == "blinkiis" or arg == "portraits" then
             local ok, message = ImportBlinkiisPortraitsProfile()
             Print(message or (ok and "Blinkii's Portraits imported" or "Blinkii's Portraits import failed"))
+        elseif arg == "exboss" or arg == "exb" then
+            local ok, message = ImportEXBossProfile()
+            Print(message or (ok and "EXBoss imported" or "EXBoss import failed"))
         elseif arg == "settings" or arg == "extras" or arg == "blizz" or arg == "blizzard" then
             local ok, message = ApplyEllesmereExtrasSettings()
             Print(message or (ok and "Ellesmere settings applied" or "Ellesmere settings failed"))
