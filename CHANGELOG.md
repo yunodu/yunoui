@@ -1,3 +1,15 @@
+## yuno 3.0
+
+- Reworked the /yuno menu and installer with a custom framework.
+- Added a Quality of Life page with a Movement Tracker.
+- Fully reworked the profile installer into its own dedicated window.
+- Fixed the dedicated installer reopening to the final scale step after the intermediate reload.
+- Restyled the installed-profile character prompt.
+- Moved the friendly nameplate override from CVars into Appearance behaviors.
+- Updated the EXBoss profile import.
+- Updated the EllesmereUI profile import.
+- Updated the BigWigs profile import.
+
 ## yuno 2.9
 
 - Added EXBoss profile import.

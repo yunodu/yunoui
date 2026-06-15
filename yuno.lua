@@ -61,9 +61,18 @@ local profileOfferScheduled = false
 local freshInstallerOpenScheduled = false
 local HookReload
 local cooldownImportFrame
+local installerFrame
+local installedProfilesPromptFrame
+local movementTrackerFrame
+local movementTrackerTicker
+local movementTrackerEventFrame
 local fontsRegistered = false
 local statusbarsRegistered = false
 local friendlyNameplateCVarHooked = false
+local actionBarPagingDeferFrame
+local actionBarPagingOverrideApplied = false
+local actionBarPagingBindOwner
+local actionBarPagingKeybindHooked = false
 local idleFadeFrame
 local idleFadeTouchedFrames = {}
 local raidFrameHealthCache = setmetatable({}, { __mode = "k" })
@@ -165,6 +174,26 @@ local FLOATING_COMBAT_TEXT_CVARS = {
     "floatingCombatTextSpellMechanicsOther",
 }
 
+local MOVEMENT_TRACKER_ABILITIES = {
+    DEATHKNIGHT = {[250] = {48265}, [251] = {48265}, [252] = {48265, 444010, 444347}},
+    DEMONHUNTER = {[577] = {195072}, [581] = {189110}, [1480] = {1234796}},
+    DRUID = {[102] = {102401, 252216, 1850, 102417}, [103] = {102401, 252216, 1850, 102417}, [104] = {102401, 252216, 106898, 1850, 102417}, [105] = {102401, 252216, 1850, 102417}},
+    EVOKER = {[1467] = {358267}, [1468] = {358267}, [1473] = {358267}},
+    HUNTER = {[253] = {186257, 781}, [254] = {186257, 781}, [255] = {186257, 781}},
+    MAGE = {[62] = {212653, 1953}, [63] = {212653, 1953}, [64] = {212653, 1953}},
+    MONK = {[268] = {115008, 109132, 119085, 361138}, [269] = {109132, 119085, 361138}, [270] = {109132, 119085, 361138}},
+    PALADIN = {[65] = {190784}, [66] = {190784}, [70] = {190784}},
+    PRIEST = {[256] = {121536, 73325}, [257] = {121536, 73325}, [258] = {121536, 73325}},
+    ROGUE = {[259] = {36554, 2983}, [260] = {195457, 2983}, [261] = {36554, 2983}},
+    SHAMAN = {[262] = {79206, 90328, 192063, 58875}, [263] = {90328, 192063, 58875}, [264] = {79206, 90328, 192063, 58875}},
+    WARLOCK = {[265] = {48020, 111400}, [266] = {48020, 111400}, [267] = {48020, 111400}},
+    WARRIOR = {[71] = {6544}, [72] = {6544}, [73] = {6544}},
+}
+
+local MOVEMENT_TRACKER_BUFF_ACTIVE = {
+    [111400] = "Burning Rush Active!",
+}
+
 local FPS_CVARS = {
     { "graphicsShadowQuality",      "1" },
     { "graphicsLiquidDetail",       "0" },
@@ -257,18 +286,24 @@ end
 
 local function ApplyFPSSettings()
     local applied, skipped = ApplyCVarTable(FPS_CVARS)
+    if type(YunoDB) == "table" then YunoDB.graphicsPreset = "fps" end
 
     return applied, skipped
 end
 
 local function ApplyYunoGraphicsSettings()
-    return ApplyCVarTable(YUNO_GRAPHICS_CVARS)
+    local applied, skipped = ApplyCVarTable(YUNO_GRAPHICS_CVARS)
+    if type(YunoDB) == "table" then YunoDB.graphicsPreset = "yuno" end
+    return applied, skipped
 end
 
 local function ApplyFloatingCombatText(value)
     local cvars = {}
     for _, name in ipairs(FLOATING_COMBAT_TEXT_CVARS) do
         cvars[name] = value
+    end
+    if type(YunoDB) == "table" then
+        YunoDB.floatingCombatTextPreset = tonumber(value) == 1 and "enabled" or "disabled"
     end
 
     return ApplyCVarTable(cvars)
@@ -551,15 +586,274 @@ local function EnsureDB()
     if YunoDB.forceChatSidebarRight == nil then YunoDB.forceChatSidebarRight = true end
     if YunoDB.disableFriendlyPlayerNameplates == nil then YunoDB.disableFriendlyPlayerNameplates = true end
     if YunoDB.fadeIdlePlayerAndCooldowns == nil then YunoDB.fadeIdlePlayerAndCooldowns = false end
+    if YunoDB.disableEllesmereActionBarPaging == nil then YunoDB.disableEllesmereActionBarPaging = false end
     if type(YunoDB.healthBarOpacity) ~= "number" then YunoDB.healthBarOpacity = 85 end
     if type(YunoDB.tint) ~= "number" then YunoDB.tint = 0.75 end
     if type(YunoDB.profilePromptApplied) ~= "table" then YunoDB.profilePromptApplied = {} end
     if type(YunoDB.profilePromptDismissed) ~= "table" then YunoDB.profilePromptDismissed = {} end
     if YunoDB.profilePromptEnabled == nil then YunoDB.profilePromptEnabled = true end
+    if YunoDB.graphicsPreset ~= "fps" and YunoDB.graphicsPreset ~= "yuno" then YunoDB.graphicsPreset = nil end
+    if YunoDB.floatingCombatTextPreset ~= "enabled" and YunoDB.floatingCombatTextPreset ~= "disabled" then YunoDB.floatingCombatTextPreset = nil end
+    if type(YunoDB.qol) ~= "table" then YunoDB.qol = {} end
+    if type(YunoDB.qol.movementTracker) ~= "table" then YunoDB.qol.movementTracker = {} end
+    local movement = YunoDB.qol.movementTracker
+    if movement.enabled == nil then movement.enabled = false end
+    if movement.unlock == nil then movement.unlock = false end
+    if movement.combatOnly == nil then movement.combatOnly = false end
+    if type(movement.point) ~= "string" then movement.point = "CENTER" end
+    if type(movement.x) ~= "number" then movement.x = 0 end
+    if type(movement.y) ~= "number" then movement.y = 50 end
+    if type(movement.width) ~= "number" then movement.width = 220 end
+    if type(movement.height) ~= "number" then movement.height = 48 end
+    if type(movement.pollRate) ~= "number" then movement.pollRate = 100 end
+    if type(movement.fontSize) ~= "number" then movement.fontSize = 12 end
+    if movement.fontSize < 8 then movement.fontSize = 8 end
+    if movement.fontSize > 32 then movement.fontSize = 32 end
     if YunoDB.healthBarOpacity < 0 then YunoDB.healthBarOpacity = 0 end
     if YunoDB.healthBarOpacity > 100 then YunoDB.healthBarOpacity = 100 end
     if YunoDB.tint < 0 then YunoDB.tint = 0 end
     if YunoDB.tint > 1 then YunoDB.tint = 1 end
+end
+
+local function GetMovementTrackerDB()
+    EnsureDB()
+    return YunoDB.qol.movementTracker
+end
+
+local function ResolvePlayerSpecId()
+    if not GetSpecialization or not GetSpecializationInfo then return nil end
+    local spec = GetSpecialization()
+    if not spec then return nil end
+    local specId = select(1, GetSpecializationInfo(spec))
+    if specId and specId > 0 then return specId end
+    return nil
+end
+
+local function IsYunoPlayerSpell(spellId)
+    if C_SpellBook and C_SpellBook.IsSpellKnown then
+        local ok, known = pcall(C_SpellBook.IsSpellKnown, spellId)
+        if ok and known then return true end
+    end
+    if IsPlayerSpell then
+        local ok, known = pcall(IsPlayerSpell, spellId)
+        if ok and known then return true end
+    end
+    if IsSpellKnown then
+        local ok, known = pcall(IsSpellKnown, spellId)
+        if ok and known then return true end
+    end
+    return false
+end
+
+local function ResolveMovementSpellId(spellId)
+    if C_Spell and C_Spell.GetOverrideSpell then
+        local ok, overrideId = pcall(C_Spell.GetOverrideSpell, spellId)
+        if ok and overrideId and overrideId > 0 then return overrideId end
+    end
+    return spellId
+end
+
+local function GetMovementTrackerSpells()
+    local _, class = UnitClass("player")
+    local specId = ResolvePlayerSpecId()
+    local classData = class and MOVEMENT_TRACKER_ABILITIES[class]
+    local specData = classData and specId and classData[specId]
+    local spells = {}
+    local seen = {}
+
+    if not specData then return spells end
+
+    for _, baseSpellId in ipairs(specData) do
+        local spellId = ResolveMovementSpellId(baseSpellId)
+        if not seen[spellId] and (IsYunoPlayerSpell(baseSpellId) or IsYunoPlayerSpell(spellId)) then
+            local spellInfo = C_Spell and C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(spellId)
+            if spellInfo then
+                spells[#spells + 1] = {
+                    spellId = spellId,
+                    baseSpellId = baseSpellId ~= spellId and baseSpellId or nil,
+                    name = spellInfo.name or tostring(spellId),
+                    icon = spellInfo.iconID,
+                    activeText = MOVEMENT_TRACKER_BUFF_ACTIVE[spellId] or MOVEMENT_TRACKER_BUFF_ACTIVE[baseSpellId],
+                }
+                seen[spellId] = true
+            end
+        end
+    end
+
+    return spells
+end
+
+local function GetMovementCooldownRemaining(entry)
+    local spellId = entry.baseSpellId or entry.spellId
+    local charges = C_Spell and C_Spell.GetSpellCharges and C_Spell.GetSpellCharges(spellId)
+    if charges and charges.maxCharges and charges.maxCharges > 1 then
+        local current = charges.currentCharges or charges.charges or charges.maxCharges
+        if current and current > 0 then return 0 end
+        local startTime = charges.cooldownStartTime or charges.startTime or 0
+        local duration = charges.cooldownDuration or charges.duration or 0
+        if duration and duration > 0 then
+            return math.max(0, (startTime + duration) - GetTime())
+        end
+    end
+
+    local cooldown = C_Spell and C_Spell.GetSpellCooldown and C_Spell.GetSpellCooldown(spellId)
+    if not cooldown or not cooldown.duration or cooldown.duration <= 1.5 then return 0 end
+    if cooldown.isEnabled == false then return 0 end
+
+    local startTime = cooldown.startTime or 0
+    return math.max(0, (startTime + cooldown.duration) - GetTime())
+end
+
+local function IsMovementBuffActive(entry)
+    if not entry.activeText then return false end
+    if C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID then
+        if C_UnitAuras.GetPlayerAuraBySpellID(entry.spellId) then return true end
+        if entry.baseSpellId and C_UnitAuras.GetPlayerAuraBySpellID(entry.baseSpellId) then return true end
+    end
+    return false
+end
+
+local function SaveMovementTrackerPoint(frame)
+    local db = GetMovementTrackerDB()
+    local point, _, _, x, y = frame:GetPoint(1)
+    db.point = point or "CENTER"
+    db.x = x or 0
+    db.y = y or 50
+end
+
+local function CreateMovementTrackerFrame()
+    if movementTrackerFrame then return movementTrackerFrame end
+
+    local frame = CreateFrame("Frame", "YunoMovementTrackerFrame", UIParent)
+    frame:SetSize(220, 48)
+    frame:SetMovable(true)
+    frame:RegisterForDrag("LeftButton")
+    frame:SetScript("OnDragStart", function(self)
+        if GetMovementTrackerDB().unlock then self:StartMoving() end
+    end)
+    frame:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        SaveMovementTrackerPoint(self)
+    end)
+
+    frame.bg = frame:CreateTexture(nil, "BACKGROUND")
+    frame.bg:SetAllPoints()
+    frame.bg:SetColorTexture(0x12 / 255, 0x12 / 255, 0x16 / 255, 0.78)
+
+    frame.text = frame:CreateFontString(nil, "OVERLAY")
+    frame.text:SetPoint("CENTER")
+    frame.text:SetJustifyH("CENTER")
+    frame.text:SetJustifyV("MIDDLE")
+
+    movementTrackerFrame = frame
+    return frame
+end
+
+local UpdateMovementTrackerDisplay
+
+local function StopMovementTrackerTicker()
+    if movementTrackerTicker then
+        movementTrackerTicker:Cancel()
+        movementTrackerTicker = nil
+    end
+end
+
+local function StartMovementTrackerTicker()
+    local db = GetMovementTrackerDB()
+    if movementTrackerTicker or not db.enabled then return end
+    local interval = math.max(50, db.pollRate or 100) / 1000
+    movementTrackerTicker = C_Timer.NewTicker(interval, function()
+        UpdateMovementTrackerDisplay()
+    end)
+end
+
+UpdateMovementTrackerDisplay = function()
+    local db = GetMovementTrackerDB()
+    local frame = CreateMovementTrackerFrame()
+    frame:ClearAllPoints()
+    frame:SetPoint(db.point or "CENTER", UIParent, db.point or "CENTER", db.x or 0, db.y or 50)
+    frame:SetSize(db.width or 220, db.height or 48)
+    frame:EnableMouse(db.enabled and db.unlock)
+    if db.enabled and db.unlock then
+        frame.bg:Show()
+    else
+        frame.bg:Hide()
+    end
+
+    local fontSize = math.max(8, math.min(32, tonumber(db.fontSize) or 12))
+    if not frame.text:SetFont(FONT_MEDIA[3].path, fontSize, "OUTLINE") then
+        frame.text:SetFont(STANDARD_TEXT_FONT, fontSize, "OUTLINE")
+    end
+    frame.text:SetTextColor(1, 1, 1, 1)
+
+    if not db.enabled then
+        StopMovementTrackerTicker()
+        frame:Hide()
+        return
+    end
+
+    if db.unlock then
+        frame.text:SetText("MOVEMENT TRACKER")
+        frame:Show()
+        StopMovementTrackerTicker()
+        return
+    end
+
+    if db.combatOnly and not (UnitAffectingCombat and UnitAffectingCombat("player")) then
+        StopMovementTrackerTicker()
+        frame:Hide()
+        return
+    end
+
+    local lines = {}
+    for _, entry in ipairs(GetMovementTrackerSpells()) do
+        if IsMovementBuffActive(entry) then
+            lines[#lines + 1] = entry.activeText
+        else
+            local remaining = GetMovementCooldownRemaining(entry)
+            if remaining and remaining > 0 then
+                lines[#lines + 1] = string.format("No %s %.1f", entry.name, remaining)
+            end
+        end
+    end
+
+    if #lines == 0 then
+        StopMovementTrackerTicker()
+        frame:Hide()
+        return
+    end
+
+    frame.text:SetText(table.concat(lines, "\n"))
+    frame:Show()
+    StartMovementTrackerTicker()
+end
+
+local function GetMovementTrackerSpellSummary()
+    local names = {}
+    for _, entry in ipairs(GetMovementTrackerSpells()) do
+        names[#names + 1] = entry.name
+    end
+    if #names == 0 then return "none for current spec" end
+    return table.concat(names, ", ")
+end
+
+local function InitializeMovementTrackerEvents()
+    if movementTrackerEventFrame then return end
+    movementTrackerEventFrame = CreateFrame("Frame")
+    movementTrackerEventFrame:RegisterEvent("PLAYER_LOGIN")
+    movementTrackerEventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    movementTrackerEventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
+    movementTrackerEventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+    movementTrackerEventFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+    movementTrackerEventFrame:RegisterEvent("TRAIT_CONFIG_UPDATED")
+    movementTrackerEventFrame:RegisterEvent("SPELL_UPDATE_COOLDOWN")
+    movementTrackerEventFrame:RegisterEvent("SPELL_UPDATE_CHARGES")
+    movementTrackerEventFrame:RegisterEvent("SPELL_UPDATE_USABLE")
+    movementTrackerEventFrame:RegisterUnitEvent("UNIT_AURA", "player")
+    movementTrackerEventFrame:SetScript("OnEvent", function(_, event, unit)
+        if event == "UNIT_AURA" and unit ~= "player" then return end
+        UpdateMovementTrackerDisplay()
+    end)
 end
 
 local function ApplyFriendlyPlayerNameplatePreference()
@@ -1023,6 +1317,161 @@ ApplyChatSettings = function()
     ApplyChatSidebarPosition()
     ApplyChatRuntimePreset(chat)
     return changed
+end
+
+local function GetOverrideBarIndexSafe()
+    if GetOverrideBarIndex then return GetOverrideBarIndex() end
+    if C_ActionBar and C_ActionBar.GetOverrideBarIndex then return C_ActionBar.GetOverrideBarIndex() end
+    return 14
+end
+
+local function GetVehicleBarIndexSafe()
+    if GetVehicleBarIndex then return GetVehicleBarIndex() end
+    if C_ActionBar and C_ActionBar.GetVehicleBarIndex then return C_ActionBar.GetVehicleBarIndex() end
+    return 12
+end
+
+local YUNO_ACTION_BAR_MODIFIER_STATES = {
+    { id = "alt",   macro = "[mod:alt]" },
+    { id = "shift", macro = "[mod:shift]" },
+    { id = "ctrl",  macro = "[mod:ctrl]" },
+}
+
+local YUNO_ACTION_BAR_CLASS_STATES = {
+    DRUID = {
+        { id = "prowl",   macro = "[bonusbar:1,stealth]" },
+        { id = "cat",     macro = "[bonusbar:1]" },
+        { id = "tree",    macro = "[bonusbar:2]" },
+        { id = "bear",    macro = "[bonusbar:3]" },
+        { id = "moonkin", macro = "[bonusbar:4]" },
+    },
+    ROGUE = {
+        { id = "stealth", macro = "[bonusbar:1]" },
+    },
+    WARRIOR = {
+        { id = "battle",    macro = "[bonusbar:1]" },
+        { id = "defensive", macro = "[bonusbar:2]" },
+    },
+    EVOKER = {
+        { id = "soar", macro = "[bonusbar:1]" },
+    },
+}
+
+local YUNO_ACTION_BAR_CLASS_DEFAULTS = {
+    DRUID = { prowl = 7, cat = 7, tree = 8, bear = 9, moonkin = 10 },
+    ROGUE = { stealth = 7 },
+}
+
+local function BuildYunoMainBarPagingConditions(pagingConfig, disableClassPaging)
+    local parts = {
+        "[overridebar] " .. GetOverrideBarIndexSafe(),
+        "[vehicleui][possessbar] " .. GetVehicleBarIndexSafe(),
+    }
+
+    if type(pagingConfig) == "table" then
+        for _, state in ipairs(YUNO_ACTION_BAR_MODIFIER_STATES) do
+            local page = pagingConfig[state.id]
+            if page then
+                parts[#parts + 1] = state.macro .. " " .. page
+            end
+        end
+    end
+
+    local _, class = UnitClass("player")
+    local classStates = not disableClassPaging and YUNO_ACTION_BAR_CLASS_STATES[class]
+    if classStates then
+        local defaults = YUNO_ACTION_BAR_CLASS_DEFAULTS[class]
+        for _, state in ipairs(classStates) do
+            local page = type(pagingConfig) == "table" and pagingConfig[state.id] or nil
+            if page then
+                parts[#parts + 1] = state.macro .. " " .. page
+            elseif page == nil and defaults and defaults[state.id] then
+                parts[#parts + 1] = state.macro .. " " .. defaults[state.id]
+            end
+        end
+    end
+
+    parts[#parts + 1] = "[bonusbar:5] 11"
+    for i = 2, (NUM_ACTIONBAR_PAGES or 6) do
+        parts[#parts + 1] = "[bar:" .. i .. "] " .. i
+    end
+    parts[#parts + 1] = "1"
+    return table.concat(parts, "; ")
+end
+
+local function ApplyYunoMainBarKeybindOverride()
+    if InCombatLockdown and InCombatLockdown() then return false end
+
+    if not actionBarPagingBindOwner then
+        actionBarPagingBindOwner = CreateFrame("Frame", "YunoActionBarPagingBindOwner", UIParent)
+    end
+    ClearOverrideBindings(actionBarPagingBindOwner)
+
+    if YunoDB.disableEllesmereActionBarPaging ~= true then
+        return true
+    end
+
+    for i = 1, 12 do
+        local button = _G["EABButton" .. i]
+        local buttonName = button and button:GetName()
+        if buttonName then
+            local key1, key2 = GetBindingKey("ACTIONBUTTON" .. i)
+            if key1 then SetOverrideBindingClick(actionBarPagingBindOwner, true, key1, buttonName) end
+            if key2 then SetOverrideBindingClick(actionBarPagingBindOwner, true, key2, buttonName) end
+        end
+    end
+
+    return true
+end
+
+local function HookYunoMainBarKeybindOverride()
+    if actionBarPagingKeybindHooked or type(_G._EAB_UpdateKeybinds) ~= "function" or not hooksecurefunc then return end
+    local ok = pcall(hooksecurefunc, "_EAB_UpdateKeybinds", function()
+        if type(YunoDB) == "table" and YunoDB.disableEllesmereActionBarPaging == true then
+            C_Timer.After(0, ApplyYunoMainBarKeybindOverride)
+        end
+    end)
+    actionBarPagingKeybindHooked = ok and true or false
+end
+
+local function ApplyEllesmereActionBarPagingOverride()
+    EnsureDB()
+    if InCombatLockdown and InCombatLockdown() then
+        if not actionBarPagingDeferFrame then
+            actionBarPagingDeferFrame = CreateFrame("Frame")
+            actionBarPagingDeferFrame:SetScript("OnEvent", function(self)
+                self:UnregisterEvent("PLAYER_REGEN_ENABLED")
+                ApplyEllesmereActionBarPagingOverride()
+            end)
+        end
+        actionBarPagingDeferFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+        return false
+    end
+
+    HookYunoMainBarKeybindOverride()
+    local profile = GetEllesmereAddonProfile("EllesmereUIActionBars")
+    local pagingConfig = profile and profile.bars and profile.bars.MainBar and profile.bars.MainBar.paging
+    local disableClassPaging = YunoDB.disableEllesmereActionBarPaging == true
+    if not disableClassPaging and not actionBarPagingOverrideApplied then return false end
+
+    local frame = _G.EABBar_MainBar
+    if not frame then return false end
+
+    if type(_G._EAB_UpdateKeybinds) == "function" then
+        _G._EAB_UpdateKeybinds()
+    end
+
+    if UnregisterStateDriver then
+        UnregisterStateDriver(frame, "page")
+    end
+    if RegisterStateDriver then
+        RegisterStateDriver(frame, "page", BuildYunoMainBarPagingConditions(pagingConfig, disableClassPaging))
+    end
+
+    ApplyYunoMainBarKeybindOverride()
+    actionBarPagingOverrideApplied = disableClassPaging
+
+    return true
 end
 
 local function ApplyBlizzardUIEnhancedSettings()
@@ -1670,30 +2119,110 @@ end
 
 local function ShowInstalledProfilesPrompt()
     if InCombatLockdown and InCombatLockdown() then return end
-    if not StaticPopupDialogs or not StaticPopup_Show then return end
     if not ShouldOfferInstalledProfiles() then return end
 
-    StaticPopupDialogs.YUNO_APPLY_INSTALLED_PROFILES = StaticPopupDialogs.YUNO_APPLY_INSTALLED_PROFILES or {
-        text = "yuno profiles are already installed. Apply them to this character and reload the UI?",
-        button1 = "Apply & Reload",
-        button2 = "Not Now",
-        OnAccept = function()
+    local UI = yuno and yuno.UI or YunoUI
+    if not UI then return end
+
+    local function SetButtonBackground(button, color, alpha)
+        if not button.bg then
+            button.bg = button:CreateTexture(nil, "BACKGROUND")
+            button.bg:SetAllPoints()
+        end
+        button.bg:SetColorTexture(color[1], color[2], color[3], alpha or color[4] or 1)
+    end
+
+    local function CreateSolidButton(parent, label)
+        local button = CreateFrame("Frame", nil, parent)
+        button:SetSize(150, 36)
+        button:EnableMouse(true)
+        SetButtonBackground(button, UI.Theme.accent)
+
+        button.label = UI:CreateText(button, label, 12, "text", "bold")
+        button.label:SetPoint("CENTER")
+        button.label:SetTextColor(1, 1, 1, 1)
+
+        function button:SetOnClick(callback)
+            self._yunoOnClick = callback
+        end
+
+        button:SetScript("OnEnter", function(self)
+            SetButtonBackground(self, UI.Theme.accent, 0.86)
+        end)
+        button:SetScript("OnLeave", function(self)
+            SetButtonBackground(self, UI.Theme.accent)
+        end)
+        button:SetScript("OnMouseDown", function(self, mouseButton)
+            if mouseButton ~= "LeftButton" then return end
+            SetButtonBackground(self, UI.Theme.accent, 0.70)
+        end)
+        button:SetScript("OnMouseUp", function(self, mouseButton)
+            SetButtonBackground(self, UI.Theme.accent, self:IsMouseOver() and 0.86 or 1)
+            if mouseButton == "LeftButton" and self._yunoOnClick then self:_yunoOnClick() end
+        end)
+
+        return button
+    end
+
+    if not installedProfilesPromptFrame then
+        local frame = UI:CreateWindow("YunoInstalledProfilesPromptFrame", UIParent, 500, 280)
+        frame.subtitle:SetText("profiles")
+
+        frame.body = CreateFrame("Frame", nil, frame)
+        frame.body:SetPoint("TOPLEFT", 28, -64)
+        frame.body:SetPoint("BOTTOMRIGHT", -28, 24)
+
+        frame.logo = frame.body:CreateTexture(nil, "ARTWORK")
+        frame.logo:SetTexture("Interface\\AddOns\\yuno\\media\\logo.png")
+        frame.logo:SetSize(76, 76)
+        frame.logo:SetPoint("TOP", frame.body, "TOP", 0, 0)
+
+        frame.heading = UI:CreateText(frame.body, "Profiles installed", 21, "text", "bold")
+        frame.heading:SetPoint("TOPLEFT", frame.logo, "BOTTOMLEFT", -190, -14)
+        frame.heading:SetPoint("TOPRIGHT", frame.logo, "BOTTOMRIGHT", 190, -14)
+        frame.heading:SetJustifyH("CENTER")
+
+        frame.copy = UI:CreateText(frame.body, "Apply yuno's installed profiles to this character and reload the UI?", 12, "muted", "semibold")
+        frame.copy:SetPoint("TOPLEFT", frame.heading, "BOTTOMLEFT", 0, -12)
+        frame.copy:SetPoint("TOPRIGHT", frame.heading, "BOTTOMRIGHT", 0, -12)
+        frame.copy:SetJustifyH("CENTER")
+        frame.copy:SetSpacing(5)
+
+        frame.status = UI:CreateText(frame.body, "", 11, "muted", "semibold")
+        frame.status:SetPoint("BOTTOMLEFT", frame.body, "BOTTOMLEFT", 0, 42)
+        frame.status:SetPoint("BOTTOMRIGHT", frame.body, "BOTTOMRIGHT", 0, 42)
+        frame.status:SetJustifyH("CENTER")
+
+        frame.applyButton = CreateSolidButton(frame.body, "Apply & Reload")
+        frame.applyButton:SetPoint("BOTTOMRIGHT", frame.body, "BOTTOM", -6, 0)
+
+        frame.dismissButton = UI:CreateFlatButton(frame.body, "Not Now")
+        frame.dismissButton:SetSize(150, 36)
+        frame.dismissButton:SetPoint("BOTTOMLEFT", frame.body, "BOTTOM", 6, 0)
+
+        local function Dismiss()
+            MarkProfilePromptDismissed()
+            frame:Hide()
+        end
+
+        frame.closeButton:SetOnClick(Dismiss)
+        frame.dismissButton:SetOnClick(Dismiss)
+        frame.applyButton:SetOnClick(function()
             local ok, message = ApplyInstalledProfilesToCharacter(true)
             Print(message)
             if ok then
                 ReloadUI()
+                return
             end
-        end,
-        OnCancel = function()
-            MarkProfilePromptDismissed()
-        end,
-        timeout = 0,
-        whileDead = true,
-        hideOnEscape = true,
-        preferredIndex = 3,
-    }
+            frame.status:SetText(message or "No installed profiles were applied.")
+            UI:SetStatusColor(frame.status, false)
+        end)
 
-    StaticPopup_Show("YUNO_APPLY_INSTALLED_PROFILES")
+        installedProfilesPromptFrame = frame
+    end
+
+    installedProfilesPromptFrame.status:SetText("")
+    installedProfilesPromptFrame:Show()
 end
 
 local function ScheduleInstalledProfilesOffer()
@@ -2244,6 +2773,8 @@ local function ApplyAll()
     patched = patched + PatchDiscoveredFrames(seenHealth)
     patched = patched + PatchEllesmereRaidFrames(seenHealth)
     ApplyFriendlyPlayerNameplatePreference()
+    ApplyChatSettings()
+    ApplyEllesmereActionBarPagingOverride()
     return patched
 end
 
@@ -2464,244 +2995,23 @@ local function ImportYunoCooldownLayouts()
     return true, "imported " .. #layoutIDs .. " cooldown layouts, removed " .. removed .. " old yuno layouts"
 end
 
-local function ShowCooldownImportFrame(initialTab)
-    if not cooldownImportFrame then
-        local MakeButton = YunoUI.CreateButton
-        local MakeCheckbox = YunoUI.CreateCheckbox
-        local MakeTab = YunoUI.CreateTab
+local function ShowInstallerFrame()
+    EnsureDB()
+    local UI = yuno and yuno.UI or YunoUI
+    if cooldownImportFrame and cooldownImportFrame:IsShown() then
+        cooldownImportFrame:Hide()
+    end
 
-        local frame = YunoUI.CreateWindow("YunoCooldownImportFrame", UIParent, 470, 500, "Settings")
-
-        frame.cdmTab = MakeTab(frame, "CDM Profiles", 132)
-        frame.cdmTab:SetPoint("TOPLEFT", 20, -94)
-        frame.settingsTab = MakeTab(frame, "Settings", 100)
-        frame.settingsTab:SetPoint("LEFT", frame.cdmTab, "RIGHT", 8, 0)
-        frame.installerTab = MakeTab(frame, "Installer", 100)
-        frame.installerTab:SetPoint("LEFT", frame.settingsTab, "RIGHT", 8, 0)
-
-        frame.cdmPage = CreateFrame("Frame", nil, frame)
-        frame.cdmPage:SetPoint("TOPLEFT", 20, -132)
-        frame.cdmPage:SetPoint("BOTTOMRIGHT", -20, 58)
-
-        frame.settingsPage = CreateFrame("Frame", nil, frame)
-        frame.settingsPage:SetPoint("TOPLEFT", 20, -132)
-        frame.settingsPage:SetPoint("BOTTOMRIGHT", -20, 58)
-
-        frame.installerPage = CreateFrame("Frame", nil, frame)
-        frame.installerPage:SetPoint("TOPLEFT", 20, -132)
-        frame.installerPage:SetPoint("BOTTOMRIGHT", -20, 58)
-
-        frame.text = frame.cdmPage:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-        frame.text:SetPoint("TOPLEFT", 0, 0)
-        frame.text:SetPoint("RIGHT", 0, 0)
-        frame.text:SetJustifyH("LEFT")
-        frame.text:SetText("Import Blizzard Cooldown Manager layouts for your current class.")
-        YunoUI.SetTextColor(frame.text, "text")
-
-        frame.detail = frame.cdmPage:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-        frame.detail:SetPoint("TOPLEFT", frame.text, "BOTTOMLEFT", 0, -6)
-        frame.detail:SetPoint("RIGHT", 0, 0)
-        frame.detail:SetJustifyH("LEFT")
-        frame.detail:SetText("Existing layouts named yuno - Class Spec are removed before importing.")
-        YunoUI.SetTextColor(frame.detail, "muted")
-
-        frame.classText = frame.cdmPage:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        frame.classText:SetPoint("TOPLEFT", frame.detail, "BOTTOMLEFT", 0, -14)
-        frame.classText:SetPoint("RIGHT", 0, 0)
-        frame.classText:SetJustifyH("LEFT")
-        YunoUI.SetTextColor(frame.classText, "muted")
-
-        frame.statusBox, frame.status = YunoUI.CreateStatusBox(frame.cdmPage, 34)
-        frame.statusBox:SetPoint("TOPLEFT", 0, -76)
-        frame.statusBox:SetPoint("TOPRIGHT", 0, -76)
-
-        frame.settingsTitle = frame.settingsPage:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        frame.settingsTitle:SetPoint("TOPLEFT", 0, 0)
-        frame.settingsTitle:SetText("Settings")
-        YunoUI.SetTextColor(frame.settingsTitle, "textStrong")
-
-        frame.settingsDescription = frame.settingsPage:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-        frame.settingsDescription:SetPoint("TOPLEFT", frame.settingsTitle, "BOTTOMLEFT", 0, -8)
-        frame.settingsDescription:SetPoint("RIGHT", 0, 0)
-        frame.settingsDescription:SetJustifyH("LEFT")
-        frame.settingsDescription:SetText("Apply yuno's WoW client CVar presets.")
-        YunoUI.SetTextColor(frame.settingsDescription, "muted")
-
-        frame.disableFriendlyNameplatesCheck = MakeCheckbox(frame.settingsPage, "Force friendly player nameplates off")
-        frame.disableFriendlyNameplatesCheck:SetPoint("TOPLEFT", frame.settingsDescription, "BOTTOMLEFT", -2, -12)
-        frame.disableFriendlyNameplatesCheck:SetChecked(YunoDB.disableFriendlyPlayerNameplates == true)
-        frame.disableFriendlyNameplatesCheck:SetScript("OnClick", function(self)
-            YunoDB.disableFriendlyPlayerNameplates = self:GetChecked() and true or false
-            local message
-            if YunoDB.disableFriendlyPlayerNameplates then
-                ApplyFriendlyPlayerNameplatePreference()
-                message = "friendly player nameplates forced off"
-            else
-                message = "friendly player nameplate override disabled"
-            end
-            if self.RefreshYunoStyle then self:RefreshYunoStyle() end
-            frame.settingsStatusBox:Show()
-            frame.settingsStatus:SetText(message)
-            Print(message)
-        end)
-
-        frame.idleFadeCheck = MakeCheckbox(frame.settingsPage, "Fade player frame, resource bars, and cooldowns while idle")
-        frame.idleFadeCheck:SetPoint("TOPLEFT", frame.disableFriendlyNameplatesCheck, "BOTTOMLEFT", 0, -6)
-        frame.idleFadeCheck:SetChecked(YunoDB.fadeIdlePlayerAndCooldowns == true)
-        frame.idleFadeCheck:SetScript("OnClick", function(self)
-            YunoDB.fadeIdlePlayerAndCooldowns = self:GetChecked() and true or false
-            ScheduleIdleFadeUpdate(0)
-
-            local message = YunoDB.fadeIdlePlayerAndCooldowns
-                and "idle fade enabled"
-                or "idle fade disabled"
-            if self.RefreshYunoStyle then self:RefreshYunoStyle() end
-            frame.settingsStatusBox:Show()
-            frame.settingsStatus:SetText(message)
-            Print(message)
-        end)
-
-        frame.euiThemeSyncCheck = MakeCheckbox(frame.settingsPage, "Sync EllesmereUI colors to yuno blue")
-        frame.euiThemeSyncCheck:SetPoint("TOPLEFT", frame.idleFadeCheck, "BOTTOMLEFT", 0, -6)
-        frame.euiThemeSyncCheck:SetChecked(YunoDB.forceEUITheme == true)
-        frame.euiThemeSyncCheck:SetScript("OnClick", function(self)
-            YunoDB.forceEUITheme = self:GetChecked() and true or false
-            local message
-            if YunoDB.forceEUITheme then
-                ApplyEllesmereThemeSettings(true, true)
-                message = "EllesmereUI color sync enabled"
-            else
-                message = "EllesmereUI color sync disabled"
-            end
-            if self.RefreshYunoStyle then self:RefreshYunoStyle() end
-            frame.settingsStatusBox:Show()
-            frame.settingsStatus:SetText(message)
-            Print(message)
-        end)
-
-        frame.setCVarsButton = MakeButton(frame.settingsPage, "Set CVars", 170)
-        frame.setCVarsButton:SetPoint("TOPLEFT", 0, -124)
-        frame.setCVarsButton:SetScript("OnClick", function()
-            local applied, skipped = ApplyCVarTable(BASE_CVARS)
-            local message = "set CVars: " .. applied .. " applied"
-            if skipped > 0 then message = message .. ", " .. skipped .. " skipped" end
-            frame.settingsStatusBox:Show()
-            frame.settingsStatus:SetText(message)
-            Print(message)
-        end)
-
-        frame.disableFCTButton = MakeButton(frame.settingsPage, "Disable Floating Combat Text", 190)
-        frame.disableFCTButton:SetPoint("LEFT", frame.setCVarsButton, "RIGHT", 14, 0)
-        frame.disableFCTButton:SetScript("OnClick", function()
-            local applied, skipped = ApplyFloatingCombatText(0)
-            local message = "floating combat text disabled: " .. applied .. " CVars"
-            if skipped > 0 then message = message .. ", " .. skipped .. " skipped" end
-            frame.settingsStatusBox:Show()
-            frame.settingsStatus:SetText(message)
-            Print(message)
-        end)
-
-        frame.enableFCTButton = MakeButton(frame.settingsPage, "Enable Floating Combat Text", 190)
-        frame.enableFCTButton:SetPoint("TOPLEFT", frame.setCVarsButton, "BOTTOMLEFT", 0, -10)
-        frame.enableFCTButton:SetScript("OnClick", function()
-            local applied, skipped = ApplyFloatingCombatText(1)
-            local message = "floating combat text enabled: " .. applied .. " CVars"
-            if skipped > 0 then message = message .. ", " .. skipped .. " skipped" end
-            frame.settingsStatusBox:Show()
-            frame.settingsStatus:SetText(message)
-            Print(message)
-        end)
-
-        frame.graphicsTitle = frame.settingsPage:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        frame.graphicsTitle:SetPoint("TOPLEFT", frame.enableFCTButton, "BOTTOMLEFT", 0, -28)
-        frame.graphicsTitle:SetText("Graphics")
-        YunoUI.SetTextColor(frame.graphicsTitle, "textStrong")
-
-        frame.fpsButton = MakeButton(frame.settingsPage, "FPS Settings", 170)
-        frame.fpsButton:SetPoint("TOPLEFT", frame.graphicsTitle, "BOTTOMLEFT", 0, -10)
-        frame.fpsButton:SetScript("OnClick", function()
-            local applied, skipped = ApplyFPSSettings()
-            local message = "FPS settings applied: " .. applied .. " CVars"
-            if skipped > 0 then message = message .. ", " .. skipped .. " skipped" end
-            frame.settingsStatusBox:Show()
-            frame.settingsStatus:SetText(message)
-            Print(message)
-        end)
-
-        frame.yunoGraphicsButton = MakeButton(frame.settingsPage, "Yuno's", 170)
-        frame.yunoGraphicsButton:SetPoint("LEFT", frame.fpsButton, "RIGHT", 14, 0)
-        frame.yunoGraphicsButton:SetScript("OnClick", function()
-            local applied, skipped = ApplyYunoGraphicsSettings()
-            local message = "Yuno's graphics applied: " .. applied .. " CVars"
-            if skipped > 0 then message = message .. ", " .. skipped .. " skipped" end
-            frame.settingsStatusBox:Show()
-            frame.settingsStatus:SetText(message)
-            Print(message)
-        end)
-
-        frame.settingsStatusBox, frame.settingsStatus = YunoUI.CreateStatusBox(frame.settingsPage, 30)
-        frame.settingsStatusBox:SetPoint("BOTTOMLEFT", 0, 0)
-        frame.settingsStatusBox:SetPoint("BOTTOMRIGHT", 0, 0)
-        frame.settingsStatus:SetText("Ready.")
-        YunoUI.SetTextColor(frame.settingsStatus, "muted")
-
-        frame.installerTitle = frame.installerPage:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-        frame.installerTitle:SetPoint("TOPLEFT", 0, 0)
-        frame.installerTitle:SetText("Installer")
-        YunoUI.SetTextColor(frame.installerTitle, "textStrong")
-
-        frame.installerDescription = frame.installerPage:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-        frame.installerDescription:SetPoint("TOPLEFT", frame.installerTitle, "BOTTOMLEFT", 0, -8)
-        frame.installerDescription:SetPoint("RIGHT", 0, 0)
-        frame.installerDescription:SetJustifyH("LEFT")
-        frame.installerDescription:SetText("Import yuno profiles into supported addons.")
-        YunoUI.SetTextColor(frame.installerDescription, "muted")
-
-        frame.installerStatusBox, frame.installerStatus = YunoUI.CreateStatusBox(frame.installerPage, 30)
-        frame.installerStatusBox:SetPoint("BOTTOMLEFT", 0, 0)
-        frame.installerStatusBox:SetPoint("BOTTOMRIGHT", 0, 0)
-
-        frame.installerStep = frame.installerPage:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-        frame.installerStep:SetPoint("TOPLEFT", frame.installerDescription, "BOTTOMLEFT", 0, -18)
-        frame.installerStep:SetPoint("RIGHT", 0, 0)
-        frame.installerStep:SetJustifyH("LEFT")
-        YunoUI.SetTextColor(frame.installerStep, "muted")
-
-        frame.installerStepTitle = frame.installerPage:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-        frame.installerStepTitle:SetPoint("TOPLEFT", frame.installerStep, "BOTTOMLEFT", 0, -8)
-        frame.installerStepTitle:SetPoint("RIGHT", 0, 0)
-        frame.installerStepTitle:SetJustifyH("LEFT")
-        YunoUI.SetTextColor(frame.installerStepTitle, "text")
-
-        frame.installerStepBody = frame.installerPage:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-        frame.installerStepBody:SetPoint("TOPLEFT", frame.installerStepTitle, "BOTTOMLEFT", 0, -14)
-        frame.installerStepBody:SetPoint("RIGHT", 0, 0)
-        frame.installerStepBody:SetJustifyH("LEFT")
-        frame.installerStepBody:SetSpacing(4)
-        YunoUI.SetTextColor(frame.installerStepBody, "text")
-
-        frame.installerBackButton = MakeButton(frame.installerPage, "Back", 96)
-        frame.installerBackButton:SetPoint("BOTTOMLEFT", 0, 42)
-
-        frame.installerPrimaryButton = MakeButton(frame.installerPage, "Apply", 160)
-        frame.installerPrimaryButton:SetPoint("LEFT", frame.installerBackButton, "RIGHT", 10, 0)
-
-        frame.installerNextButton = MakeButton(frame.installerPage, "Next", 96)
-        frame.installerNextButton:SetPoint("LEFT", frame.installerPrimaryButton, "RIGHT", 10, 0)
-
-        local function SetInstallerStatus(ok, message)
-            frame.installerStatusBox:Show()
-            frame.installerStatus:SetText(message or "")
-            YunoUI.SetStatusColor(frame.installerStatus, ok)
-        end
-
-        local function SetButtonText(button, text)
-            if button and button.label then button.label:SetText(text) end
-        end
-
+    if not installerFrame then
+        local frame = UI:CreateWindow("YunoInstallerFrame", UIParent, 620, 500)
+        frame.subtitle:SetText("installer")
         frame._installerDone = {}
-        local installerSteps
 
+        frame.body = CreateFrame("Frame", nil, frame)
+        frame.body:SetPoint("TOPLEFT", 22, -58)
+        frame.body:SetPoint("BOTTOMRIGHT", -22, 18)
+
+        local installerSteps
         installerSteps = {
             {
                 title = "Welcome",
@@ -2716,7 +3026,7 @@ local function ShowCooldownImportFrame(initialTab)
                     local ok, message = ImportBigWigsProfile(function(accepted)
                         local callbackMessage = accepted and "BigWigs profile imported as yuno" or "BigWigs import cancelled"
                         frame._installerDone[2] = accepted and true or false
-                        SetInstallerStatus(accepted, callbackMessage)
+                        if frame.installerStatusPage then frame.installerStatusPage:SetStatus(accepted, callbackMessage) end
                         Print(callbackMessage)
                     end)
                     return ok, message
@@ -2771,113 +3081,736 @@ local function ShowCooldownImportFrame(initialTab)
         }
         frame._installerStepCount = #installerSteps
 
-        local function RefreshInstallerStep()
-            local index = frame._installerStepIndex or 1
-            local step = installerSteps[index]
-            frame.installerStep:SetText("Step " .. index .. " of " .. #installerSteps)
-            frame.installerStepTitle:SetText(step.title)
-            frame.installerStepBody:SetText(step.body)
-            SetButtonText(frame.installerPrimaryButton, step.action or "Apply")
-            frame.installerBackButton:SetShown(index > 1)
-            frame.installerNextButton:SetShown(index < #installerSteps)
-            frame.installerStatusBox:Hide()
+        local function SetButtonBackground(button, color, alpha)
+            if not button.bg then
+                button.bg = button:CreateTexture(nil, "BACKGROUND")
+                button.bg:SetAllPoints()
+            end
+            button.bg:SetColorTexture(color[1], color[2], color[3], alpha or color[4] or 1)
         end
 
-        frame.installerBackButton:SetScript("OnClick", function()
-            frame._installerStepIndex = math.max(1, (frame._installerStepIndex or 1) - 1)
-            RefreshInstallerStep()
-        end)
+        local function CreateSolidActionButton(parent, label)
+            local button = CreateFrame("Frame", nil, parent)
+            button:SetSize(224, 40)
+            button:EnableMouse(true)
+            SetButtonBackground(button, UI.Theme.accent)
 
-        frame.installerNextButton:SetScript("OnClick", function()
-            frame._installerStepIndex = math.min(#installerSteps, (frame._installerStepIndex or 1) + 1)
-            RefreshInstallerStep()
-        end)
+            button.label = UI:CreateText(button, label, 13, "text", "bold")
+            button.label:SetPoint("CENTER")
+            button.label:SetTextColor(1, 1, 1, 1)
 
-        frame.installerPrimaryButton:SetScript("OnClick", function()
-            local index = frame._installerStepIndex or 1
-            local step = installerSteps[index]
-            if not step.run then
-                frame._installerStepIndex = math.min(#installerSteps, index + 1)
-                RefreshInstallerStep()
-                return
+            function button:SetLabel(text)
+                self.label:SetText(text or "")
             end
 
-            local ok, message = step.run()
-            frame._installerDone[index] = ok and true or false
-            SetInstallerStatus(ok, message or (ok and "step completed" or "step failed"))
-            Print(message or (ok and "installer step completed" or "installer step failed"))
-        end)
-
-        frame.RefreshInstallerStep = RefreshInstallerStep
-        frame._installerStepIndex = YunoDB.installerPendingFinalScale and #installerSteps or 1
-        RefreshInstallerStep()
-
-        frame.importButton = MakeButton(frame.cdmPage, "Import Layouts", 150)
-        frame.importButton:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 20, 18)
-        frame.importButton:SetScript("OnClick", function()
-            local ok, message = ImportYunoCooldownLayouts()
-            frame.statusBox:Show()
-            frame.status:SetText(message or "")
-            YunoUI.SetStatusColor(frame.status, ok)
-            Print(message or (ok and "cooldown layouts imported" or "cooldown import failed"))
-        end)
-
-        frame.cancelButton = MakeButton(frame, "Close", 96)
-        frame.cancelButton:SetPoint("BOTTOMRIGHT", -20, 18)
-        frame.cancelButton:SetScript("OnClick", function()
-            frame:Hide()
-        end)
-
-        local function SelectTab(tabName)
-            local isCdm = tabName == "cdm"
-            local isSettings = tabName == "settings"
-            local isInstaller = tabName == "installer"
-            frame.cdmPage:SetShown(isCdm)
-            frame.settingsPage:SetShown(isSettings)
-            frame.installerPage:SetShown(isInstaller)
-            frame.importButton:SetShown(isCdm)
-            frame._selectedTab = tabName
-            if isInstaller and frame.RefreshInstallerStep then
-                frame.RefreshInstallerStep()
+            function button:SetOnClick(callback)
+                self._yunoOnClick = callback
             end
 
-            YunoUI.StyleTab(frame.cdmTab, isCdm)
-            YunoUI.StyleTab(frame.settingsTab, isSettings)
-            YunoUI.StyleTab(frame.installerTab, isInstaller)
+            function button:SetEnabledState(enabled)
+                self._disabled = not enabled
+                self:SetAlpha(enabled and 1 or 0.42)
+                self:EnableMouse(enabled and true or false)
+            end
+
+            button:SetScript("OnEnter", function(self)
+                if self._disabled then return end
+                SetButtonBackground(self, UI.Theme.accent, 0.86)
+            end)
+            button:SetScript("OnLeave", function(self)
+                SetButtonBackground(self, UI.Theme.accent)
+                self:SetAlpha(self._disabled and 0.42 or 1)
+            end)
+            button:SetScript("OnMouseDown", function(self, mouseButton)
+                if self._disabled or mouseButton ~= "LeftButton" then return end
+                SetButtonBackground(self, UI.Theme.accent, 0.70)
+            end)
+            button:SetScript("OnMouseUp", function(self, mouseButton)
+                if self._disabled then return end
+                SetButtonBackground(self, UI.Theme.accent, self:IsMouseOver() and 0.86 or 1)
+                if mouseButton == "LeftButton" and self._yunoOnClick then self:_yunoOnClick() end
+            end)
+
+            return button
         end
 
-        frame.cdmTab:SetScript("OnClick", function() SelectTab("cdm") end)
-        frame.settingsTab:SetScript("OnClick", function() SelectTab("settings") end)
-        frame.installerTab:SetScript("OnClick", function() SelectTab("installer") end)
-        frame.SelectTab = SelectTab
-        frame.SelectTab(initialTab or "cdm")
+        frame.contentCanvas = CreateFrame("Frame", nil, frame.body)
+        frame.contentCanvas:SetPoint("TOPLEFT")
+        frame.contentCanvas:SetPoint("BOTTOMRIGHT", 0, 58)
 
+        frame.stepTitle = UI:CreateText(frame.contentCanvas, "", 25, "text", "bold")
+        frame.stepTitle:SetPoint("TOPLEFT", 56, -8)
+        frame.stepTitle:SetPoint("TOPRIGHT", -56, -8)
+        frame.stepTitle:SetJustifyH("CENTER")
+
+        frame.stepBody = UI:CreateText(frame.contentCanvas, "", 13, "muted", "semibold")
+        frame.stepBody:SetPoint("TOPLEFT", frame.stepTitle, "BOTTOMLEFT", 0, -16)
+        frame.stepBody:SetPoint("TOPRIGHT", frame.stepTitle, "BOTTOMRIGHT", 0, -16)
+        frame.stepBody:SetJustifyH("CENTER")
+        frame.stepBody:SetJustifyV("TOP")
+        frame.stepBody:SetSpacing(6)
+
+        frame.logo = frame.contentCanvas:CreateTexture(nil, "ARTWORK")
+        frame.logo:SetTexture("Interface\\AddOns\\yuno\\media\\logo.png")
+        frame.logo:SetSize(200, 200)
+        frame.logo:SetPoint("CENTER", frame.contentCanvas, "CENTER", 0, -30)
+
+        frame.actionButton = CreateSolidActionButton(frame.contentCanvas, "Start")
+        frame.actionButton:SetPoint("TOP", frame.logo, "BOTTOM", 0, -18)
+
+        frame.footer = CreateFrame("Frame", nil, frame.body)
+        frame.footer:SetPoint("BOTTOMLEFT")
+        frame.footer:SetPoint("BOTTOMRIGHT")
+        frame.footer:SetHeight(40)
+        UI:SetFrameColor(frame.footer, UI.Theme.panel)
+
+        frame.backButton = UI:CreateFlatButton(frame.footer, "Back")
+        frame.backButton:SetSize(120, 34)
+        frame.backButton:SetPoint("LEFT", frame.footer, "LEFT", 0, 0)
+
+        frame.nextButton = UI:CreateFlatButton(frame.footer, "Next")
+        frame.nextButton:SetSize(120, 34)
+        frame.nextButton:SetPoint("RIGHT", frame.footer, "RIGHT", 0, 0)
+
+        frame.progressBar = CreateFrame("Frame", nil, frame.footer)
+        frame.progressBar:SetPoint("LEFT", frame.backButton, "RIGHT", 12, 0)
+        frame.progressBar:SetPoint("RIGHT", frame.nextButton, "LEFT", -12, 0)
+        frame.progressBar:SetHeight(34)
+        UI:SetFrameColor(frame.progressBar, UI.Theme.row)
+
+        frame.progressFill = frame.progressBar:CreateTexture(nil, "ARTWORK")
+        frame.progressFill:SetPoint("TOPLEFT")
+        frame.progressFill:SetPoint("BOTTOMLEFT")
+        frame.progressFill:SetColorTexture(UI.Theme.accent[1], UI.Theme.accent[2], UI.Theme.accent[3], 1)
+
+        frame.progressText = UI:CreateText(frame.progressBar, "", 12, "text", "bold")
+        frame.progressText:SetPoint("CENTER")
+        frame.progressText:SetJustifyH("CENTER")
+        frame.progressText:SetTextColor(1, 1, 1, 1)
+
+        local function RefreshProgress()
+            local ratio = frame._installerProgressRatio or 0
+            local width = frame.progressBar:GetWidth() or 0
+            frame.progressFill:SetWidth(math.max(1, width * ratio))
+        end
+
+        frame.progressBar:SetScript("OnSizeChanged", RefreshProgress)
+
+        function frame:SetInstallerStatus(ok, message)
+            self._installerStatusOk = ok and true or false
+            self._installerStatusMessage = message
+        end
+
+        function frame:SetStatus(ok, message)
+            self:SetInstallerStatus(ok, message)
+        end
+
+        local function RenderInstaller()
+            local index = frame._installerStepIndex or 1
+            local step = installerSteps[index]
+            local total = #installerSteps
+
+            frame.stepTitle:SetText(step.title)
+            frame.stepBody:SetText(step.body)
+            frame.actionButton:SetLabel(step.action or "Apply")
+            frame.progressText:SetText(tostring(index) .. " / " .. tostring(total))
+            frame._installerProgressRatio = total > 0 and index / total or 0
+            RefreshProgress()
+
+            frame.backButton:SetEnabledState(index > 1)
+            frame.backButton:SetOnClick(function()
+                frame._installerStepIndex = math.max(1, (frame._installerStepIndex or 1) - 1)
+                RenderInstaller()
+            end)
+
+            frame.nextButton:SetEnabledState(index > 1 and index < total)
+            frame.nextButton:SetOnClick(function()
+                frame._installerStepIndex = math.min(total, (frame._installerStepIndex or 1) + 1)
+                RenderInstaller()
+            end)
+
+            frame.actionButton:SetEnabledState(true)
+            frame.actionButton:SetOnClick(function()
+                local currentIndex = frame._installerStepIndex or 1
+                local currentStep = installerSteps[currentIndex]
+                if not currentStep.run then
+                    frame._installerStepIndex = math.min(total, currentIndex + 1)
+                    RenderInstaller()
+                    return
+                end
+
+                local ok, message = currentStep.run()
+                frame._installerDone[currentIndex] = ok and true or false
+                frame:SetInstallerStatus(ok, message or (ok and "step completed" or "step failed"))
+                Print(message or (ok and "installer step completed" or "installer step failed"))
+            end)
+        end
+
+        frame.installerStatusPage = frame
+        frame.RenderInstaller = RenderInstaller
+        installerFrame = frame
+    end
+
+    if YunoDB.installerPendingFinalScale and installerFrame._installerStepCount then
+        installerFrame._installerStepIndex = installerFrame._installerStepCount
+    elseif not installerFrame._installerStepIndex then
+        installerFrame._installerStepIndex = 1
+    end
+    installerFrame.RenderInstaller()
+    installerFrame:Show()
+end
+
+local function ShowCooldownImportFrame(initialTab)
+    local UI = yuno and yuno.UI or YunoUI
+
+    local function NormalizePage(page)
+        if page == "cdm" or page == "cooldown" or page == "cooldowns" then return "cooldowns" end
+        if page == "settings" then return "appearance" end
+        if page == "install" or page == "installer" then return "installer" end
+        if page == "cvars" then return "cvars" end
+        if page == "qol" or page == "quality" or page == "qualityoflife" or page == "movement" or page == "movementtracker" or page == "qol_movement" then return "qol_movement" end
+        if page == "graphics" or page == "fps" then return "graphics" end
+        if page == "appearance" then return "appearance" end
+        return page or "welcome"
+    end
+
+    if not cooldownImportFrame then
+        local frame = UI:CreateWindow("YunoCooldownImportFrame", UIParent, 820, 560)
+        frame._sidebarButtons = {}
+        frame._installerDone = {}
+
+        frame.body = CreateFrame("Frame", nil, frame)
+        frame.body:SetPoint("TOPLEFT", 18, -58)
+        frame.body:SetPoint("BOTTOMRIGHT", -18, 18)
+
+        frame.sidebar = CreateFrame("Frame", nil, frame.body)
+        frame.sidebar:SetPoint("TOPLEFT")
+        frame.sidebar:SetPoint("BOTTOMLEFT")
+        frame.sidebar:SetWidth(196)
+        frame.sidebar:SetFrameLevel(frame.body:GetFrameLevel() + 3)
+        UI:SetFrameColor(frame.sidebar, UI.Theme.bg)
+
+        frame.sidebarTextLayer = CreateFrame("Frame", nil, frame)
+        frame.sidebarTextLayer:SetPoint("TOPLEFT", frame.sidebar, "TOPLEFT")
+        frame.sidebarTextLayer:SetPoint("BOTTOMRIGHT", frame.sidebar, "BOTTOMRIGHT")
+        frame.sidebarTextLayer:SetFrameStrata(frame:GetFrameStrata())
+        frame.sidebarTextLayer:SetFrameLevel(frame:GetFrameLevel() + 100)
+
+        frame.contentClip = CreateFrame("Frame", nil, frame.body)
+        frame.contentClip:SetPoint("TOPLEFT", frame.sidebar, "TOPRIGHT", 20, 0)
+        frame.contentClip:SetPoint("BOTTOMRIGHT")
+        frame.contentClip:SetFrameLevel(frame.body:GetFrameLevel() + 1)
+        UI:SetFrameColor(frame.contentClip, UI.Theme.bg)
+
+        local pageOrder = {
+            { id = "welcome", label = "Welcome" },
+            { id = "appearance", label = "Appearance" },
+            { id = "cvars", label = "CVars" },
+            { id = "qol", label = "Quality of Life", target = "qol_movement" },
+            { id = "qol_movement", label = "Movement Tracker", parent = "qol" },
+            { id = "graphics", label = "Graphics" },
+            { id = "cooldowns", label = "Cooldowns" },
+            { id = "installer", label = "Installer" },
+        }
+        frame._pageOrder = pageOrder
+
+        local function CreatePage(title, description, maxWidth)
+            if frame.page then
+                frame.page:Hide()
+                frame.page:SetParent(nil)
+            end
+            local page = UI:CreatePage(frame.contentClip, title, description, maxWidth or 550)
+            frame.page = page
+            return page
+        end
+
+        local function RenderWelcome()
+            local page = CreatePage("Welcome", "A compact dashboard for yunoUI runtime settings, imports, and client presets.")
+            local status = page:AddSection("STATUS")
+            status:AddInfoRow("Current class", GetClassDisplayName())
+            status:AddInfoRow("Runtime patches", YunoDB.enabled and "enabled" or "disabled")
+            status:AddInfoRow("Installed profiles", HasInstalledYunoProfiles() and "found" or "not found")
+
+            local actions = page:AddSection("QUICK ACTIONS")
+            actions:AddButtonRow({
+                {
+                    label = "Apply Runtime Settings",
+                    width = 190,
+                    variant = "primary",
+                    onClick = function()
+                        ScheduleApply()
+                        page:SetMuted("Runtime settings queued.")
+                        Print("runtime settings queued")
+                    end,
+                },
+                {
+                    label = "Apply Installed Profiles",
+                    width = 200,
+                    onClick = function()
+                        local ok, message = ApplyInstalledProfilesToCharacter(true)
+                        page:SetStatus(ok, message)
+                        Print(message)
+                        if ok then Print("reload UI to finish applying loaded profiles") end
+                    end,
+                },
+            }, "right")
+
+            page:UpdateLayout()
+            return page
+        end
+
+        local function RenderAppearance()
+            local page = CreatePage("Appearance", "Runtime visual behavior controlled by yunoUI.")
+
+            local automation = page:AddSection("AUTOMATION")
+            automation:AddToggle("Enable yuno runtime patches", YunoDB.enabled == true, function(_, checked)
+                YunoDB.enabled = checked
+                if checked then
+                    ScheduleApply()
+                    UpdateIdleFadeController()
+                    page:SetMuted("Runtime patches enabled.")
+                    Print("enabled")
+                else
+                    RestoreAll()
+                    UpdateIdleFadeController()
+                    page:SetMuted("Runtime patches disabled.")
+                    Print("disabled")
+                end
+            end)
+            automation:AddToggle("Enforce EllesmereUI dark mode", YunoDB.forceDarkMode == true, function(_, checked)
+                YunoDB.forceDarkMode = checked
+                if ApplyConfiguredProfileSettings() then ReloadEllesmereFrames() end
+                ScheduleApply()
+                local message = checked and "dark mode enforcement enabled" or "dark mode enforcement disabled"
+                page:SetMuted(message)
+                Print(message)
+            end)
+            automation:AddToggle("Sync EllesmereUI colors to yuno blue", YunoDB.forceEUITheme == true, function(_, checked)
+                YunoDB.forceEUITheme = checked
+                local message
+                if checked then
+                    ApplyEllesmereThemeSettings(true, true)
+                    message = "EllesmereUI color sync enabled"
+                else
+                    message = "EllesmereUI color sync disabled"
+                end
+                page:SetMuted(message)
+                Print(message)
+            end)
+
+            local behaviors = page:AddSection("BEHAVIORS")
+            behaviors:AddToggle("Force friendly player nameplates off", YunoDB.disableFriendlyPlayerNameplates == true, function(_, checked)
+                YunoDB.disableFriendlyPlayerNameplates = checked
+                local message
+                if checked then
+                    ApplyFriendlyPlayerNameplatePreference()
+                    message = "friendly player nameplates forced off"
+                else
+                    message = "friendly player nameplate override disabled"
+                end
+                page:SetMuted(message)
+                Print(message)
+            end)
+            behaviors:AddToggle("Fade player frame, resource bars, and cooldowns while idle", YunoDB.fadeIdlePlayerAndCooldowns == true, function(_, checked)
+                YunoDB.fadeIdlePlayerAndCooldowns = checked
+                ScheduleIdleFadeUpdate(0)
+                local message = checked and "idle fade enabled" or "idle fade disabled"
+                page:SetMuted(message)
+                Print(message)
+            end)
+            behaviors:AddToggle("Disable form/stealth action bar paging", YunoDB.disableEllesmereActionBarPaging == true, function(_, checked)
+                YunoDB.disableEllesmereActionBarPaging = checked
+                local applied = ApplyEllesmereActionBarPagingOverride()
+                ScheduleApply()
+                local message = checked and "form/stealth action bar paging disabled" or "form/stealth action bar paging enabled"
+                if InCombatLockdown and InCombatLockdown() then
+                    message = message .. "; will apply after combat"
+                elseif not applied then
+                    message = message .. "; will apply when action bars load"
+                end
+                page:SetMuted(message)
+                Print(message)
+            end)
+
+            page:UpdateLayout()
+            return page
+        end
+
+        local function RenderCVars()
+            local page = CreatePage("CVars", "Apply yuno's WoW client presets and combat text preferences.")
+            local base = page:AddSection("BASE CVARS")
+            base:AddButtonRow({
+                {
+                    label = "Set Base CVars",
+                    width = 170,
+                    variant = "primary",
+                    onClick = function()
+                        local applied, skipped = ApplyCVarTable(BASE_CVARS)
+                        local message = "set CVars: " .. applied .. " applied"
+                        if skipped > 0 then message = message .. ", " .. skipped .. " skipped" end
+                        page:SetMuted(message)
+                        Print(message)
+                    end,
+                },
+            }, "right")
+
+            local combatText = page:AddSection("FLOATING COMBAT TEXT")
+            local disableButton
+            local enableButton
+
+            local function CombatTextMatches(value)
+                local expected = tostring(value)
+                for _, name in ipairs(FLOATING_COMBAT_TEXT_CVARS) do
+                    if tostring(GetYunoCVar(name)) ~= expected then
+                        return false
+                    end
+                end
+                return true
+            end
+
+            local function GetActiveCombatTextPreset()
+                if YunoDB.floatingCombatTextPreset == "disabled" or YunoDB.floatingCombatTextPreset == "enabled" then
+                    return YunoDB.floatingCombatTextPreset
+                end
+                if CombatTextMatches(0) then return "disabled" end
+                if CombatTextMatches(1) then return "enabled" end
+                return nil
+            end
+
+            local function SetActiveCombatTextPreset(preset)
+                if disableButton then disableButton:SetChoiceActive(preset == "disabled") end
+                if enableButton then enableButton:SetChoiceActive(preset == "enabled") end
+            end
+
+            local row = combatText:AddButtonRow({
+                {
+                    label = "Disable",
+                    width = 170,
+                    onClick = function()
+                        local applied, skipped = ApplyFloatingCombatText(0)
+                        SetActiveCombatTextPreset("disabled")
+                        local message = "floating combat text disabled: " .. applied .. " CVars"
+                        if skipped > 0 then message = message .. ", " .. skipped .. " skipped" end
+                        page:SetMuted(message)
+                        Print(message)
+                    end,
+                },
+                {
+                    label = "Enable",
+                    width = 170,
+                    onClick = function()
+                        local applied, skipped = ApplyFloatingCombatText(1)
+                        SetActiveCombatTextPreset("enabled")
+                        local message = "floating combat text enabled: " .. applied .. " CVars"
+                        if skipped > 0 then message = message .. ", " .. skipped .. " skipped" end
+                        page:SetMuted(message)
+                        Print(message)
+                    end,
+                },
+            }, "right")
+            disableButton = row.buttons and row.buttons[1]
+            enableButton = row.buttons and row.buttons[2]
+            SetActiveCombatTextPreset(GetActiveCombatTextPreset())
+
+            page:UpdateLayout()
+            return page
+        end
+
+        local function RenderQualityOfLife()
+            local page = CreatePage("Movement Tracker", "Shows an alert while your current spec's movement tools are unavailable.")
+            local db = GetMovementTrackerDB()
+
+            local movement = page:AddSection("SETTINGS")
+            movement:AddInfoRow("Current spec spells", GetMovementTrackerSpellSummary())
+            movement:AddToggle("Enable movement tracker", db.enabled == true, function(_, checked)
+                db.enabled = checked
+                InitializeMovementTrackerEvents()
+                UpdateMovementTrackerDisplay()
+                local message = checked and "movement tracker enabled" or "movement tracker disabled"
+                page:SetMuted(message)
+                Print(message)
+            end)
+            movement:AddToggle("Unlock movement tracker", db.unlock == true, function(_, checked)
+                db.unlock = checked
+                UpdateMovementTrackerDisplay()
+                local message = checked and "movement tracker unlocked" or "movement tracker locked"
+                page:SetMuted(message)
+                Print(message)
+            end)
+            movement:AddToggle("Only show in combat", db.combatOnly == true, function(_, checked)
+                db.combatOnly = checked
+                UpdateMovementTrackerDisplay()
+                local message = checked and "movement tracker limited to combat" or "movement tracker can show outside combat"
+                page:SetMuted(message)
+                Print(message)
+            end)
+            movement:AddStepperRow("Font size", db.fontSize or 12, 8, 32, 1, function(_, value)
+                db.fontSize = value
+                UpdateMovementTrackerDisplay()
+                local message = "movement tracker font size set to " .. tostring(value)
+                page:SetMuted(message)
+                Print(message)
+            end)
+
+            page:UpdateLayout()
+            return page
+        end
+
+        local function RenderGraphics()
+            local page = CreatePage("Graphics", "Switch between FPS-focused and yuno's graphics CVar presets.")
+            local actions = page:AddSection("PRESETS")
+
+            actions:AddText("Graphics presets apply immediately and overwrite the matching client CVars.", 12, "muted", 42)
+
+            local fpsButton
+            local yunoButton
+
+            local function PresetMatches(cvars)
+                for _, cvar in ipairs(cvars) do
+                    if tostring(GetYunoCVar(cvar[1])) ~= tostring(cvar[2]) then
+                        return false
+                    end
+                end
+                return true
+            end
+
+            local function GetActiveGraphicsPreset()
+                if YunoDB.graphicsPreset == "yuno" or YunoDB.graphicsPreset == "fps" then
+                    return YunoDB.graphicsPreset
+                end
+                if PresetMatches(YUNO_GRAPHICS_CVARS) then return "yuno" end
+                if PresetMatches(FPS_CVARS) then return "fps" end
+                return nil
+            end
+
+            local function SetActiveGraphicsPreset(preset)
+                if fpsButton then fpsButton:SetChoiceActive(preset == "fps") end
+                if yunoButton then yunoButton:SetChoiceActive(preset == "yuno") end
+            end
+
+            local row = actions:AddButtonRow({
+                {
+                    label = "FPS Settings",
+                    width = 170,
+                    onClick = function()
+                        local applied, skipped = ApplyFPSSettings()
+                        SetActiveGraphicsPreset("fps")
+                        local message = "FPS preset applied: " .. applied .. " CVars"
+                        if skipped > 0 then message = message .. ", " .. skipped .. " skipped" end
+                        page:SetMuted(message)
+                        Print(message)
+                    end,
+                },
+                {
+                    label = "Yuno Graphics",
+                    width = 170,
+                    onClick = function()
+                        local applied, skipped = ApplyYunoGraphicsSettings()
+                        SetActiveGraphicsPreset("yuno")
+                        local message = "Yuno's graphics applied: " .. applied .. " CVars"
+                        if skipped > 0 then message = message .. ", " .. skipped .. " skipped" end
+                        page:SetMuted(message)
+                        Print(message)
+                    end,
+                },
+            }, "right")
+
+            fpsButton = row.buttons and row.buttons[1]
+            yunoButton = row.buttons and row.buttons[2]
+            SetActiveGraphicsPreset(GetActiveGraphicsPreset())
+
+            page:UpdateLayout()
+            return page
+        end
+
+        local function RenderCooldowns()
+            local page = CreatePage("Cooldowns", "Import Blizzard Cooldown Manager layouts for your current class.")
+            local summary = page:AddSection("BLIZZARD COOLDOWN MANAGER")
+            summary:AddInfoRow("Current class", GetClassDisplayName())
+            summary:AddInfoRow("Import behavior", "replaces old yuno layouts")
+            summary:AddButtonRow({
+                {
+                    label = "Import Layouts",
+                    width = 170,
+                    variant = "primary",
+                    onClick = function()
+                        local ok, message = ImportYunoCooldownLayouts()
+                        page:SetStatus(ok, message or "")
+                        Print(message or (ok and "cooldown layouts imported" or "cooldown import failed"))
+                    end,
+                },
+            }, "right")
+
+            page:UpdateLayout()
+            return page
+        end
+
+        local function RenderInstaller()
+            local page = CreatePage("Installer", "The installer opens in a dedicated window.")
+            local launcher = page:AddSection("PROFILE INSTALLER")
+            launcher:AddText("Use the installer window to import yuno profiles into supported addons and handle reload steps.", 13, "text", 66)
+            launcher:AddButtonRow({
+                {
+                    label = "Open Installer",
+                    width = 170,
+                    variant = "primary",
+                    onClick = function()
+                        ShowInstallerFrame()
+                    end,
+                },
+            }, "right")
+            page:UpdateLayout()
+            return page
+        end
+
+        local renderers = {
+            welcome = RenderWelcome,
+            appearance = RenderAppearance,
+            cvars = RenderCVars,
+            qol_movement = RenderQualityOfLife,
+            graphics = RenderGraphics,
+            cooldowns = RenderCooldowns,
+            installer = RenderInstaller,
+        }
+
+        local function PageIsInGroup(page, parentId)
+            for _, item in ipairs(pageOrder) do
+                if item.parent == parentId and item.id == page then return true end
+            end
+            return false
+        end
+
+        local function LayoutSidebar(selectedPage)
+            local previous
+            local previousOverlay
+            frame.sidebarTextLayer:SetFrameStrata(frame:GetFrameStrata())
+            frame.sidebarTextLayer:SetFrameLevel(frame:GetFrameLevel() + 100)
+            frame.sidebarTextLayer:Show()
+            for _, item in ipairs(pageOrder) do
+                local button = frame._sidebarButtons[item.id]
+                local visible = not item.parent or PageIsInGroup(selectedPage, item.parent)
+                if visible then
+                    button:Show()
+                    if button.labelHost then button.labelHost:Hide() end
+                    if button.overlayRow then button.overlayRow:Show() end
+                    if button.overlayLabel then button.overlayLabel:Show() end
+                    button.label:SetText(item.label)
+                    button.label:Hide()
+                    button:ClearAllPoints()
+                    button:SetPoint("LEFT", 0, 0)
+                    button:SetPoint("RIGHT", 0, 0)
+                    if previous then
+                        button:SetPoint("TOP", previous, "BOTTOM", 0, item.parent and -1 or -4)
+                    else
+                        button:SetPoint("TOP", 0, -4)
+                    end
+
+                    if button.overlayRow then
+                        button.overlayRow:ClearAllPoints()
+                        button.overlayRow:SetHeight(button:GetHeight())
+                        button.overlayRow:SetPoint("LEFT", frame.sidebarTextLayer, "LEFT", 0, 0)
+                        button.overlayRow:SetPoint("RIGHT", frame.sidebarTextLayer, "RIGHT", 0, 0)
+                        if previousOverlay then
+                            button.overlayRow:SetPoint("TOP", previousOverlay, "BOTTOM", 0, item.parent and -1 or -4)
+                        else
+                            button.overlayRow:SetPoint("TOP", frame.sidebarTextLayer, "TOP", 0, -4)
+                        end
+                        previousOverlay = button.overlayRow
+                    end
+
+                    if button.overlayLabel then
+                        button.overlayLabel:SetText(item.label)
+                        button.overlayLabel:ClearAllPoints()
+                        button.overlayLabel:SetPoint("TOPLEFT", button.overlayRow or frame.sidebarTextLayer, "TOPLEFT", item.parent and 28 or 14, 0)
+                        button.overlayLabel:SetPoint("BOTTOMRIGHT", button.overlayRow or frame.sidebarTextLayer, "BOTTOMRIGHT", -8, 0)
+                    end
+                    previous = button
+                else
+                    if button.labelHost then button.labelHost:Hide() end
+                    if button.overlayRow then button.overlayRow:Hide() end
+                    if button.overlayLabel then button.overlayLabel:Hide() end
+                    button:Hide()
+                end
+            end
+        end
+
+        local function SelectPage(page, skipRender)
+            page = NormalizePage(page)
+            if not renderers[page] then page = "welcome" end
+            frame._selectedTab = page
+            frame._selectedPage = page
+            LayoutSidebar(page)
+            for id, button in pairs(frame._sidebarButtons) do
+                button:SetActive(id == page or PageIsInGroup(page, id) or button.targetPage == page)
+            end
+            if skipRender then return end
+            renderers[page]()
+        end
+
+        frame.SelectPage = SelectPage
+        frame.SelectTab = SelectPage
+        frame.RefreshInstallerStep = function() ShowInstallerFrame() end
+
+        frame.RebuildSidebarTextLayer = function()
+            for _, page in ipairs(pageOrder) do
+                local button = frame._sidebarButtons[page.id]
+                if button then
+                    if button.overlayRow then
+                        button.overlayRow:Hide()
+                        button.overlayRow:SetParent(nil)
+                    end
+
+                    button.overlayRow = CreateFrame("Frame", nil, frame.sidebarTextLayer)
+                    button.overlayRow:SetFrameLevel(frame.sidebarTextLayer:GetFrameLevel() + 1)
+                    button.overlayRow:Hide()
+                    button.overlayLabel = UI:CreateText(button.overlayRow, page.label, 12, "muted", "semibold")
+                    button.overlayLabel:SetJustifyH("LEFT")
+                    button.overlayLabel:SetJustifyV("MIDDLE")
+                    if button.overlayLabel.SetDrawLayer then button.overlayLabel:SetDrawLayer("OVERLAY", 7) end
+                    button.label:Hide()
+                end
+            end
+        end
+
+        for index, page in ipairs(pageOrder) do
+            local button = UI:CreateSidebarButton(frame.sidebar, page.label, page.id)
+            button.label:Hide()
+            button.targetPage = page.target
+            if page.parent then
+                button:SetHeight(28)
+                button:SetLabelInset(28)
+            end
+            button:SetOnClick(function() SelectPage(page.target or page.id) end)
+            frame._sidebarButtons[page.id] = button
+        end
+
+        frame.RebuildSidebarTextLayer()
         cooldownImportFrame = frame
     end
-
-    cooldownImportFrame.classText:SetText("Current class: " .. GetClassDisplayName())
-    cooldownImportFrame.statusBox:Hide()
-    cooldownImportFrame.status:SetText("")
-    YunoUI.SetTextColor(cooldownImportFrame.status, "muted")
-    if cooldownImportFrame.disableFriendlyNameplatesCheck then
-        cooldownImportFrame.disableFriendlyNameplatesCheck:SetChecked(YunoDB.disableFriendlyPlayerNameplates == true)
-    end
-    if cooldownImportFrame.idleFadeCheck then
-        cooldownImportFrame.idleFadeCheck:SetChecked(YunoDB.fadeIdlePlayerAndCooldowns == true)
-    end
-    if cooldownImportFrame.euiThemeSyncCheck then
-        cooldownImportFrame.euiThemeSyncCheck:SetChecked(YunoDB.forceEUITheme == true)
-    end
-    if initialTab == "installer" and YunoDB.installerPendingFinalScale and cooldownImportFrame._installerStepCount then
-        cooldownImportFrame._installerStepIndex = cooldownImportFrame._installerStepCount
-    end
-    if cooldownImportFrame.SelectTab then cooldownImportFrame.SelectTab(initialTab or cooldownImportFrame._selectedTab or "cdm") end
+    local selectedPage = NormalizePage(initialTab or cooldownImportFrame._selectedPage or "welcome")
+    cooldownImportFrame.SelectPage(selectedPage)
     cooldownImportFrame:Show()
+    C_Timer.After(0, function()
+        if cooldownImportFrame and cooldownImportFrame:IsShown() then
+            if cooldownImportFrame.RebuildSidebarTextLayer then
+                cooldownImportFrame.RebuildSidebarTextLayer()
+            end
+            cooldownImportFrame.SelectPage(cooldownImportFrame._selectedPage or selectedPage, true)
+        end
+    end)
+    C_Timer.After(0.30, function()
+        if cooldownImportFrame and cooldownImportFrame:IsShown() then
+            if cooldownImportFrame.RebuildSidebarTextLayer then
+                cooldownImportFrame.RebuildSidebarTextLayer()
+            end
+            cooldownImportFrame.SelectPage(cooldownImportFrame._selectedPage or selectedPage, true)
+        end
+    end)
 end
 
 local function ShouldOpenFreshInstaller()
     EnsureDB()
-    return YunoDB.installerCompletedVersion ~= PROFILE_PROMPT_VERSION
+    return YunoDB.installerPendingFinalScale == true or YunoDB.installerCompletedVersion ~= PROFILE_PROMPT_VERSION
 end
 
 local function ScheduleFreshInstallerOpen()
@@ -2887,7 +3820,7 @@ local function ScheduleFreshInstallerOpen()
         freshInstallerOpenScheduled = false
         if InCombatLockdown and InCombatLockdown() then return end
         if ShouldOpenFreshInstaller() then
-            ShowCooldownImportFrame("installer")
+            ShowInstallerFrame()
         end
     end)
 end
@@ -2950,11 +3883,12 @@ local function ShowHelp()
         ", euiTheme=" .. tostring(YunoDB.forceEUITheme) ..
         ", friendlyNameplatesOff=" .. tostring(YunoDB.disableFriendlyPlayerNameplates) ..
         ", idleFade=" .. tostring(YunoDB.fadeIdlePlayerAndCooldowns) ..
+        ", formPaging=" .. (YunoDB.disableEllesmereActionBarPaging and "off" or "on") ..
         ", chatButtons=" .. (YunoDB.forceChatSidebarRight and "right" or "left") ..
         ", opacity=" .. tostring(YunoDB.healthBarOpacity or 85) .. "%" ..
         ", tint=" .. math.floor((YunoDB.tint or 0.75) * 100 + 0.5) .. "%")
     Print("/yuno opens settings, /yuno help shows this list")
-    Print("/yuno on|off, /yuno bg on|off, /yuno dark on|off, /yuno theme on|off, /yuno idlefade on|off, /yuno chat right|left, /yuno cdm import, /yuno install ellesmere|bigwigs|editmode|blinkii|exboss|settings, /yuno profiles, /yuno cvars, /yuno fct on|off, /yuno fps, /yuno graphics yuno, /yuno tint 75, /yuno opacity 85, /yuno dmpos, /yuno media, /yuno apply")
+    Print("/yuno on|off, /yuno bg on|off, /yuno dark on|off, /yuno theme on|off, /yuno idlefade on|off, /yuno paging on|off, /yuno chat right|left, /yuno cdm import, /yuno install ellesmere|bigwigs|editmode|blinkii|exboss|settings, /yuno profiles, /yuno cvars, /yuno fct on|off, /yuno fps, /yuno graphics yuno, /yuno tint 75, /yuno opacity 85, /yuno dmpos, /yuno media, /yuno apply")
 end
 
 SLASH_YUNO1 = "/yuno"
@@ -3028,6 +3962,27 @@ SlashCmdList.YUNO = function(msg)
             Print("usage: /yuno idlefade on|off")
             return
         end
+    elseif cmd == "paging" or cmd == "actionbarpaging" or cmd == "barpaging" then
+        if arg == "off" or arg == "0" or arg == "false" or arg == "disable" or arg == "disabled" then
+            YunoDB.disableEllesmereActionBarPaging = true
+        elseif arg == "on" or arg == "1" or arg == "true" or arg == "enable" or arg == "enabled" then
+            YunoDB.disableEllesmereActionBarPaging = false
+        else
+            Print("usage: /yuno paging on|off")
+            return
+        end
+
+        local applied = ApplyEllesmereActionBarPagingOverride()
+        ScheduleApply()
+        local message = YunoDB.disableEllesmereActionBarPaging
+            and "form/stealth action bar paging disabled"
+            or "form/stealth action bar paging enabled"
+        if InCombatLockdown and InCombatLockdown() then
+            message = message .. "; will apply after combat"
+        elseif not applied then
+            message = message .. "; will apply when action bars load"
+        end
+        Print(message)
     elseif cmd == "chat" then
         if arg == "right" or arg == "on" or arg == "1" or arg == "true" then
             YunoDB.forceChatSidebarRight = true
@@ -3047,7 +4002,28 @@ SlashCmdList.YUNO = function(msg)
             local ok, message = ImportYunoCooldownLayouts()
             Print(message or (ok and "cooldown layouts imported" or "cooldown import failed"))
         else
-            ShowCooldownImportFrame()
+            ShowCooldownImportFrame("cooldowns")
+        end
+    elseif cmd == "qol" or cmd == "quality" or cmd == "movement" or cmd == "movementtracker" then
+        if arg == "on" or arg == "1" or arg == "true" or arg == "enable" then
+            GetMovementTrackerDB().enabled = true
+            InitializeMovementTrackerEvents()
+            UpdateMovementTrackerDisplay()
+            Print("movement tracker enabled")
+        elseif arg == "off" or arg == "0" or arg == "false" or arg == "disable" then
+            GetMovementTrackerDB().enabled = false
+            UpdateMovementTrackerDisplay()
+            Print("movement tracker disabled")
+        elseif arg == "unlock" then
+            GetMovementTrackerDB().unlock = true
+            UpdateMovementTrackerDisplay()
+            Print("movement tracker unlocked")
+        elseif arg == "lock" then
+            GetMovementTrackerDB().unlock = false
+            UpdateMovementTrackerDisplay()
+            Print("movement tracker locked")
+        else
+            ShowCooldownImportFrame("qol")
         end
     elseif cmd == "install" or cmd == "installer" then
         if arg == "ellesmere" or arg == "ellesmereui" or arg == "eui" then
@@ -3071,8 +4047,7 @@ SlashCmdList.YUNO = function(msg)
             local ok, message = ApplyEllesmereExtrasSettings()
             Print(message or (ok and "Ellesmere settings applied" or "Ellesmere settings failed"))
         else
-            ShowCooldownImportFrame()
-            if cooldownImportFrame and cooldownImportFrame.SelectTab then cooldownImportFrame.SelectTab("installer") end
+            ShowInstallerFrame()
         end
     elseif cmd == "profiles" or cmd == "applyprofiles" or cmd == "alt" then
         local ok, message = ApplyInstalledProfilesToCharacter(true)
@@ -3175,18 +4150,20 @@ pcall(eventFrame.RegisterEvent, eventFrame, "PLAYER_SPECIALIZATION_CHANGED")
 pcall(eventFrame.RegisterEvent, eventFrame, "ACTIVE_TALENT_GROUP_CHANGED")
 pcall(eventFrame.RegisterEvent, eventFrame, "TRAIT_CONFIG_UPDATED")
 eventFrame:SetScript("OnEvent", function(_, event, addonName)
-    if event == "ADDON_LOADED" and addonName ~= ADDON_NAME and addonName ~= "EllesmereUIUnitFrames" and addonName ~= "EllesmereUIRaidFrames" and addonName ~= "EllesmereUIChat" and addonName ~= "EllesmereUINameplates" and addonName ~= "EllesmereUICooldownManager" and addonName ~= "EllesmereUIResourceBars" then
+    if event == "ADDON_LOADED" and addonName ~= ADDON_NAME and addonName ~= "EllesmereUIUnitFrames" and addonName ~= "EllesmereUIRaidFrames" and addonName ~= "EllesmereUIChat" and addonName ~= "EllesmereUINameplates" and addonName ~= "EllesmereUICooldownManager" and addonName ~= "EllesmereUIResourceBars" and addonName ~= "EllesmereUIActionBars" then
         return
     end
 
     if not fontsRegistered or not statusbarsRegistered then RegisterMedia() end
     EnsureDB()
+    InitializeMovementTrackerEvents()
     HookFriendlyPlayerNameplateCVars()
     HookReload()
     local forceThemeLive = event == "ADDON_LOADED" or event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD"
     ApplyEllesmereThemeSettings(forceThemeLive)
     if ApplyConfiguredProfileSettings() then ReloadEllesmereFrames() end
     ApplyAll()
+    UpdateMovementTrackerDisplay()
     ScheduleApplyBurst()
     ScheduleIdleFadeUpdate(0)
 
@@ -3206,11 +4183,13 @@ end)
 C_Timer.After(0, function()
     RegisterMedia()
     EnsureDB()
+    InitializeMovementTrackerEvents()
     HookFriendlyPlayerNameplateCVars()
     HookReload()
     ApplyEllesmereThemeSettings(true)
     ApplyConfiguredProfileSettings()
     ApplyAll()
+    UpdateMovementTrackerDisplay()
     ScheduleIdleFadeUpdate(0)
     ScheduleStartupRetries()
 end)
@@ -3223,5 +4202,6 @@ C_Timer.After(1, function()
     ApplyEllesmereThemeSettings(true)
     if ApplyConfiguredProfileSettings() then ReloadEllesmereFrames() end
     ApplyAll()
+    UpdateMovementTrackerDisplay()
     ScheduleIdleFadeUpdate(0)
 end)

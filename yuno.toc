@@ -1,8 +1,8 @@
 ## Interface: 120000, 120001, 120005
 ## Title: yuno
-## Notes: Runtime patches for EllesmereUI preferences, unit frames, and cooldown layouts.
+## Notes: Modern configuration, profile imports and quality-of-life tools for yunoUI.
 ## Author: yuno
-## Version: 2.9
+## Version: 3.0
 ## Dependencies: EllesmereUI, EllesmereUIUnitFrames
 ## OptionalDeps: EllesmereUIChat, EllesmereUIBlizzardSkin, EllesmereUIDamageMeters, EllesmereUIRaidFrames, BigWigs, Blinkiis_Portraits, EXBoss
 ## SavedVariables: YunoDB
