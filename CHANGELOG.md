@@ -1,7 +1,6 @@
 ## yuno 3.01
 
 - Rebuilt the Movement Tracker with combat-safe charge caching.
-- Fixed the Movement Tracker load warning caused by too many top-level Lua locals.
 - Added the pet healthbar to idle fade.
 
 ## yuno 3.0
