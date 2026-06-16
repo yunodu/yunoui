@@ -2,7 +2,7 @@
 ## Title: yuno
 ## Notes: Modern configuration, profile imports and quality-of-life tools for yunoUI.
 ## Author: yuno
-## Version: 3.0
+## Version: 3.01
 ## Dependencies: EllesmereUI, EllesmereUIUnitFrames
 ## OptionalDeps: EllesmereUIChat, EllesmereUIBlizzardSkin, EllesmereUIDamageMeters, EllesmereUIRaidFrames, BigWigs, Blinkiis_Portraits, EXBoss
 ## SavedVariables: YunoDB
