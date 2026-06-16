@@ -63,9 +63,17 @@ local HookReload
 local cooldownImportFrame
 local installerFrame
 local installedProfilesPromptFrame
-local movementTrackerFrame
-local movementTrackerTicker
-local movementTrackerEventFrame
+local MovementTracker = {
+    knownCharges = {},
+    cachedSpells = {},
+    spellMap = {},
+    chargeCounts = {},
+    castTimes = {},
+    rechargeStart = {},
+    rechargeTimers = {},
+    buffState = {},
+    inCombat = false,
+}
 local fontsRegistered = false
 local statusbarsRegistered = false
 local friendlyNameplateCVarHooked = false
@@ -174,7 +182,7 @@ local FLOATING_COMBAT_TEXT_CVARS = {
     "floatingCombatTextSpellMechanicsOther",
 }
 
-local MOVEMENT_TRACKER_ABILITIES = {
+MovementTracker.abilities = {
     DEATHKNIGHT = {[250] = {48265}, [251] = {48265}, [252] = {48265, 444010, 444347}},
     DEMONHUNTER = {[577] = {195072}, [581] = {189110}, [1480] = {1234796}},
     DRUID = {[102] = {102401, 252216, 1850, 102417}, [103] = {102401, 252216, 1850, 102417}, [104] = {102401, 252216, 106898, 1850, 102417}, [105] = {102401, 252216, 1850, 102417}},
@@ -190,7 +198,7 @@ local MOVEMENT_TRACKER_ABILITIES = {
     WARRIOR = {[71] = {6544}, [72] = {6544}, [73] = {6544}},
 }
 
-local MOVEMENT_TRACKER_BUFF_ACTIVE = {
+MovementTracker.buffActive = {
     [111400] = "Burning Rush Active!",
 }
 
@@ -615,12 +623,26 @@ local function EnsureDB()
     if YunoDB.tint > 1 then YunoDB.tint = 1 end
 end
 
-local function GetMovementTrackerDB()
+function MovementTracker.GetDB()
     EnsureDB()
     return YunoDB.qol.movementTracker
 end
 
-local function ResolvePlayerSpecId()
+function MovementTracker.IsSecretValue(value)
+    return issecretvalue and issecretvalue(value) or false
+end
+
+function MovementTracker.GetSafeNumber(value)
+    if value == nil or MovementTracker.IsSecretValue(value) then return nil end
+    local ok, numberValue = pcall(function()
+        if type(value) == "number" then return value + 0 end
+        local coerced = tonumber(value)
+        if type(coerced) == "number" then return coerced + 0 end
+    end)
+    if ok and type(numberValue) == "number" then return numberValue end
+end
+
+function MovementTracker.ResolvePlayerSpecId()
     if not GetSpecialization or not GetSpecializationInfo then return nil end
     local spec = GetSpecialization()
     if not spec then return nil end
@@ -629,7 +651,11 @@ local function ResolvePlayerSpecId()
     return nil
 end
 
-local function IsYunoPlayerSpell(spellId)
+function MovementTracker.IsPlayerSpell(spellId)
+    if C_SpellBook and C_SpellBook.PlayerHasSpell then
+        local ok, known = pcall(C_SpellBook.PlayerHasSpell, spellId)
+        if ok and known then return true end
+    end
     if C_SpellBook and C_SpellBook.IsSpellKnown then
         local ok, known = pcall(C_SpellBook.IsSpellKnown, spellId)
         if ok and known then return true end
@@ -645,95 +671,347 @@ local function IsYunoPlayerSpell(spellId)
     return false
 end
 
-local function ResolveMovementSpellId(spellId)
+function MovementTracker.ResolveSpellId(spellId)
     if C_Spell and C_Spell.GetOverrideSpell then
         local ok, overrideId = pcall(C_Spell.GetOverrideSpell, spellId)
-        if ok and overrideId and overrideId > 0 then return overrideId end
+        local safeOverrideId = ok and MovementTracker.GetSafeNumber(overrideId)
+        if safeOverrideId and safeOverrideId > 0 then return safeOverrideId end
     end
     return spellId
 end
 
-local function GetMovementTrackerSpells()
+function MovementTracker.GetSafeChargeInfo(spellId)
+    if not (C_Spell and C_Spell.GetSpellCharges) then return false, 1, 0 end
+    local ok, chargeInfo = pcall(C_Spell.GetSpellCharges, spellId)
+    if not ok or type(chargeInfo) ~= "table" then
+        local cached = MovementTracker.knownCharges[spellId]
+        if cached then return true, cached.maxCharges, cached.rechargeDuration end
+        return false, 1, 0
+    end
+
+    local maxCharges = MovementTracker.GetSafeNumber(chargeInfo.maxCharges)
+    local rechargeDuration = MovementTracker.GetSafeNumber(chargeInfo.cooldownDuration)
+    if not maxCharges or not rechargeDuration then
+        local cached = MovementTracker.knownCharges[spellId]
+        if cached then return true, cached.maxCharges, cached.rechargeDuration end
+        return false, 1, 0
+    end
+
+    if maxCharges > 1 then
+        MovementTracker.knownCharges[spellId] = {
+            maxCharges = maxCharges,
+            rechargeDuration = rechargeDuration,
+        }
+        return true, maxCharges, rechargeDuration
+    end
+
+    local cached = MovementTracker.knownCharges[spellId]
+    if cached then return true, cached.maxCharges, cached.rechargeDuration end
+    return false, maxCharges, rechargeDuration
+end
+
+function MovementTracker.GetSafeCooldownDuration(spellId)
+    if not C_Spell then return 0 end
+
+    if C_Spell.GetSpellCooldownDuration then
+        local ok, durationInfo = pcall(C_Spell.GetSpellCooldownDuration, spellId)
+        if ok and durationInfo and durationInfo.GetTotalDuration then
+            local okDuration, rawDuration = pcall(durationInfo.GetTotalDuration, durationInfo)
+            local duration = okDuration and MovementTracker.GetSafeNumber(rawDuration)
+            if duration and duration > 1.5 then return duration end
+        end
+    end
+
+    if C_Spell.GetSpellBaseCooldown then
+        local ok, ms = pcall(C_Spell.GetSpellBaseCooldown, spellId)
+        local cooldownMs = ok and MovementTracker.GetSafeNumber(ms)
+        if cooldownMs and cooldownMs > 1500 then return cooldownMs / 1000 end
+    end
+
+    if C_Spell.GetSpellCooldown then
+        local ok, cooldown = pcall(C_Spell.GetSpellCooldown, spellId)
+        local duration = ok and type(cooldown) == "table" and MovementTracker.GetSafeNumber(cooldown.duration)
+        if duration and duration > 1.5 then return duration end
+    end
+
+    return 0
+end
+
+function MovementTracker.ClearRechargeTimers()
+    for _, timer in pairs(MovementTracker.rechargeTimers) do
+        if timer and timer.Cancel then timer:Cancel() end
+    end
+    wipe(MovementTracker.rechargeTimers)
+end
+
+function MovementTracker.StopTicker()
+    if MovementTracker.ticker then
+        MovementTracker.ticker:Cancel()
+        MovementTracker.ticker = nil
+    end
+end
+
+function MovementTracker.HideFrame()
+    MovementTracker.StopTicker()
+    if MovementTracker.frame then MovementTracker.frame:Hide() end
+end
+
+function MovementTracker.StartRechargeTimer(entry, delay)
+    local spellId = entry.spellId
+    if MovementTracker.rechargeTimers[spellId] then return end
+    local duration = delay or entry.rechargeDuration or 0
+    if duration <= 0 then return end
+
+    MovementTracker.rechargeTimers[spellId] = C_Timer.NewTimer(duration, function()
+        MovementTracker.rechargeTimers[spellId] = nil
+        local maxCharges = entry.maxCharges or 1
+        local current = MovementTracker.chargeCounts[spellId] or 0
+        local nextCharges = math.min(current + 1, maxCharges)
+        MovementTracker.chargeCounts[spellId] = nextCharges
+
+        if nextCharges < maxCharges then
+            MovementTracker.rechargeStart[spellId] = GetTime()
+            MovementTracker.StartRechargeTimer(entry)
+        else
+            MovementTracker.rechargeStart[spellId] = nil
+        end
+
+        if MovementTracker.frame then
+            MovementTracker.frame.UpdateDisplay()
+        end
+    end)
+end
+
+function MovementTracker.UpdateCachedCharges()
+    if MovementTracker.inCombat or (InCombatLockdown and InCombatLockdown()) then return end
+    for _, entry in ipairs(MovementTracker.cachedSpells) do
+        if entry.isChargeSpell and C_Spell and C_Spell.GetSpellCharges then
+            local chargeId = entry.baseSpellId or entry.chargeSpellId or entry.spellId
+            local ok, chargeInfo = pcall(C_Spell.GetSpellCharges, chargeId)
+            local current = ok and type(chargeInfo) == "table" and MovementTracker.GetSafeNumber(chargeInfo.currentCharges)
+            if current then
+                MovementTracker.chargeCounts[entry.spellId] = current
+                if current >= (entry.maxCharges or 1) then
+                    MovementTracker.rechargeStart[entry.spellId] = nil
+                    MovementTracker.castTimes[entry.spellId] = nil
+                end
+            end
+        elseif not entry.isChargeSpell and C_Spell and C_Spell.GetSpellCooldown then
+            local ok, cooldown = pcall(C_Spell.GetSpellCooldown, entry.spellId)
+            local startTime = ok and type(cooldown) == "table" and MovementTracker.GetSafeNumber(cooldown.startTime)
+            local duration = ok and type(cooldown) == "table" and MovementTracker.GetSafeNumber(cooldown.duration)
+            if startTime and duration and duration > 1.5 and (startTime + duration) > GetTime() then
+                entry.baseDuration = duration
+                MovementTracker.castTimes[entry.spellId] = startTime
+            else
+                MovementTracker.castTimes[entry.spellId] = nil
+            end
+        end
+    end
+end
+
+function MovementTracker.CacheSpells(fullReset)
+    if MovementTracker.inCombat or (InCombatLockdown and InCombatLockdown()) then return end
+
+    if fullReset then
+        wipe(MovementTracker.castTimes)
+        wipe(MovementTracker.rechargeStart)
+        wipe(MovementTracker.chargeCounts)
+        wipe(MovementTracker.buffState)
+        MovementTracker.ClearRechargeTimers()
+    end
+
     local _, class = UnitClass("player")
-    local specId = ResolvePlayerSpecId()
-    local classData = class and MOVEMENT_TRACKER_ABILITIES[class]
+    local specId = MovementTracker.ResolvePlayerSpecId()
+    local classData = class and MovementTracker.abilities[class]
     local specData = classData and specId and classData[specId]
     local spells = {}
     local seen = {}
 
-    if not specData then return spells end
+    if specData then
+        for _, baseSpellId in ipairs(specData) do
+            local displayId = MovementTracker.ResolveSpellId(baseSpellId)
+            if not seen[displayId] and (MovementTracker.IsPlayerSpell(baseSpellId) or MovementTracker.IsPlayerSpell(displayId)) then
+                local spellInfo = C_Spell and C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(displayId)
+                if spellInfo then
+                    local isCharge, maxCharges, rechargeDuration = MovementTracker.GetSafeChargeInfo(displayId)
+                    local baseSpellIdForCharges = baseSpellId ~= displayId and baseSpellId or nil
+                    if not isCharge and baseSpellIdForCharges then
+                        isCharge, maxCharges, rechargeDuration = MovementTracker.GetSafeChargeInfo(baseSpellIdForCharges)
+                    end
 
-    for _, baseSpellId in ipairs(specData) do
-        local spellId = ResolveMovementSpellId(baseSpellId)
-        if not seen[spellId] and (IsYunoPlayerSpell(baseSpellId) or IsYunoPlayerSpell(spellId)) then
-            local spellInfo = C_Spell and C_Spell.GetSpellInfo and C_Spell.GetSpellInfo(spellId)
-            if spellInfo then
-                spells[#spells + 1] = {
-                    spellId = spellId,
-                    baseSpellId = baseSpellId ~= spellId and baseSpellId or nil,
-                    name = spellInfo.name or tostring(spellId),
-                    icon = spellInfo.iconID,
-                    activeText = MOVEMENT_TRACKER_BUFF_ACTIVE[spellId] or MOVEMENT_TRACKER_BUFF_ACTIVE[baseSpellId],
-                }
-                seen[spellId] = true
+                    local baseDuration = isCharge and rechargeDuration or MovementTracker.GetSafeCooldownDuration(displayId)
+                    if not isCharge and baseDuration <= 0 and baseSpellIdForCharges then
+                        baseDuration = MovementTracker.GetSafeCooldownDuration(baseSpellIdForCharges)
+                    end
+
+                    spells[#spells + 1] = {
+                        spellId = displayId,
+                        baseSpellId = baseSpellIdForCharges,
+                        name = spellInfo.name or tostring(displayId),
+                        icon = spellInfo.iconID,
+                        activeText = MovementTracker.buffActive[displayId] or MovementTracker.buffActive[baseSpellId],
+                        isChargeSpell = isCharge,
+                        maxCharges = maxCharges,
+                        rechargeDuration = rechargeDuration,
+                        baseDuration = baseDuration,
+                    }
+                    seen[displayId] = true
+                end
             end
         end
     end
 
-    return spells
-end
-
-local function GetMovementCooldownRemaining(entry)
-    local spellId = entry.baseSpellId or entry.spellId
-    local charges = C_Spell and C_Spell.GetSpellCharges and C_Spell.GetSpellCharges(spellId)
-    if charges and charges.maxCharges and charges.maxCharges > 1 then
-        local current = charges.currentCharges or charges.charges or charges.maxCharges
-        if current and current > 0 then return 0 end
-        local startTime = charges.cooldownStartTime or charges.startTime or 0
-        local duration = charges.cooldownDuration or charges.duration or 0
-        if duration and duration > 0 then
-            return math.max(0, (startTime + duration) - GetTime())
-        end
+    MovementTracker.cachedSpells = spells
+    wipe(MovementTracker.spellMap)
+    for _, entry in ipairs(MovementTracker.cachedSpells) do
+        MovementTracker.spellMap[entry.spellId] = entry
+        if entry.baseSpellId then MovementTracker.spellMap[entry.baseSpellId] = entry end
     end
 
-    local cooldown = C_Spell and C_Spell.GetSpellCooldown and C_Spell.GetSpellCooldown(spellId)
-    if not cooldown or not cooldown.duration or cooldown.duration <= 1.5 then return 0 end
-    if cooldown.isEnabled == false then return 0 end
-
-    local startTime = cooldown.startTime or 0
-    return math.max(0, (startTime + cooldown.duration) - GetTime())
+    MovementTracker.UpdateCachedCharges()
 end
 
-local function IsMovementBuffActive(entry)
-    if not entry.activeText then return false end
+function MovementTracker.GetSpellSummary()
+    local names = {}
+    for _, entry in ipairs(MovementTracker.cachedSpells) do
+        names[#names + 1] = entry.name
+    end
+    if #names == 0 then return "none for current spec" end
+    return table.concat(names, ", ")
+end
+
+function MovementTracker.GetRemaining(entry)
+    if entry.isChargeSpell then
+        local current = MovementTracker.chargeCounts[entry.spellId]
+        if current == nil then current = entry.maxCharges or 1 end
+        if current > 0 then return 0 end
+
+        local startTime = MovementTracker.rechargeStart[entry.spellId] or MovementTracker.castTimes[entry.spellId]
+        local duration = entry.rechargeDuration or entry.baseDuration or 0
+        if startTime and duration > 0 then
+            return math.max(0, (startTime + duration) - GetTime())
+        end
+        return 0
+    end
+
+    local startTime = MovementTracker.castTimes[entry.spellId]
+    local duration = entry.baseDuration or 0
+    if startTime and duration > 0 then
+        return math.max(0, (startTime + duration) - GetTime())
+    end
+    return 0
+end
+
+function MovementTracker.SyncBuffs()
+    for _, entry in ipairs(MovementTracker.cachedSpells) do
+        if entry.activeText then
+            local aura
+            if C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID then
+                local ok, found = pcall(C_UnitAuras.GetPlayerAuraBySpellID, entry.spellId)
+                if ok then aura = found end
+                if not aura and entry.baseSpellId then
+                    ok, found = pcall(C_UnitAuras.GetPlayerAuraBySpellID, entry.baseSpellId)
+                    if ok then aura = found end
+                end
+            end
+            MovementTracker.buffState[entry.spellId] = aura and {
+                active = true,
+                auraInstanceID = aura.auraInstanceID,
+            } or nil
+        end
+    end
+end
+
+function MovementTracker.IsBuffActive(entry)
+    local state = MovementTracker.buffState[entry.spellId]
+    if state and state.active then return true end
+    if MovementTracker.inCombat or (InCombatLockdown and InCombatLockdown()) then return false end
+
     if C_UnitAuras and C_UnitAuras.GetPlayerAuraBySpellID then
-        if C_UnitAuras.GetPlayerAuraBySpellID(entry.spellId) then return true end
-        if entry.baseSpellId and C_UnitAuras.GetPlayerAuraBySpellID(entry.baseSpellId) then return true end
+        local ok, aura = pcall(C_UnitAuras.GetPlayerAuraBySpellID, entry.spellId)
+        if ok and aura then return true end
+        if entry.baseSpellId then
+            ok, aura = pcall(C_UnitAuras.GetPlayerAuraBySpellID, entry.baseSpellId)
+            if ok and aura then return true end
+        end
     end
     return false
 end
 
-local function SaveMovementTrackerPoint(frame)
-    local db = GetMovementTrackerDB()
+function MovementTracker.OnAuraUpdate(updateInfo)
+    if not updateInfo then
+        if not MovementTracker.inCombat and not (InCombatLockdown and InCombatLockdown()) then
+            MovementTracker.SyncBuffs()
+        end
+        return
+    end
+
+    if updateInfo.removedAuraInstanceIDs then
+        for _, instanceID in ipairs(updateInfo.removedAuraInstanceIDs) do
+            for _, entry in ipairs(MovementTracker.cachedSpells) do
+                local state = MovementTracker.buffState[entry.spellId]
+                if state and state.auraInstanceID == instanceID then
+                    MovementTracker.buffState[entry.spellId] = nil
+                end
+            end
+        end
+    end
+
+    if updateInfo.addedAuras then
+        for _, aura in ipairs(updateInfo.addedAuras) do
+            local spellId = aura.spellId and not MovementTracker.IsSecretValue(aura.spellId) and aura.spellId
+            if spellId then
+                local entry = MovementTracker.spellMap[spellId]
+                if entry and entry.activeText then
+                    MovementTracker.buffState[entry.spellId] = {
+                        active = true,
+                        auraInstanceID = aura.auraInstanceID,
+                    }
+                end
+            end
+        end
+    end
+end
+
+function MovementTracker.OnSpellCast(spellId)
+    if MovementTracker.IsSecretValue(spellId) then return end
+    local entry = MovementTracker.spellMap[spellId]
+    if not entry or entry.activeText then return end
+
+    MovementTracker.castTimes[entry.spellId] = GetTime()
+    if entry.isChargeSpell then
+        local current = MovementTracker.chargeCounts[entry.spellId]
+        if current == nil then current = entry.maxCharges or 1 end
+        MovementTracker.chargeCounts[entry.spellId] = math.max(0, current - 1)
+        if not MovementTracker.rechargeStart[entry.spellId] then
+            MovementTracker.rechargeStart[entry.spellId] = GetTime()
+        end
+        MovementTracker.StartRechargeTimer(entry)
+    end
+end
+
+function MovementTracker.SavePoint(frame)
+    local db = MovementTracker.GetDB()
     local point, _, _, x, y = frame:GetPoint(1)
     db.point = point or "CENTER"
     db.x = x or 0
     db.y = y or 50
 end
 
-local function CreateMovementTrackerFrame()
-    if movementTrackerFrame then return movementTrackerFrame end
+function MovementTracker.CreateFrame()
+    if MovementTracker.frame then return MovementTracker.frame end
 
     local frame = CreateFrame("Frame", "YunoMovementTrackerFrame", UIParent)
     frame:SetSize(220, 48)
     frame:SetMovable(true)
     frame:RegisterForDrag("LeftButton")
     frame:SetScript("OnDragStart", function(self)
-        if GetMovementTrackerDB().unlock then self:StartMoving() end
+        if MovementTracker.GetDB().unlock then self:StartMoving() end
     end)
     frame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
-        SaveMovementTrackerPoint(self)
+        MovementTracker.SavePoint(self)
     end)
 
     frame.bg = frame:CreateTexture(nil, "BACKGROUND")
@@ -745,114 +1023,130 @@ local function CreateMovementTrackerFrame()
     frame.text:SetJustifyH("CENTER")
     frame.text:SetJustifyV("MIDDLE")
 
-    movementTrackerFrame = frame
-    return frame
-end
-
-local UpdateMovementTrackerDisplay
-
-local function StopMovementTrackerTicker()
-    if movementTrackerTicker then
-        movementTrackerTicker:Cancel()
-        movementTrackerTicker = nil
-    end
-end
-
-local function StartMovementTrackerTicker()
-    local db = GetMovementTrackerDB()
-    if movementTrackerTicker or not db.enabled then return end
-    local interval = math.max(50, db.pollRate or 100) / 1000
-    movementTrackerTicker = C_Timer.NewTicker(interval, function()
-        UpdateMovementTrackerDisplay()
-    end)
-end
-
-UpdateMovementTrackerDisplay = function()
-    local db = GetMovementTrackerDB()
-    local frame = CreateMovementTrackerFrame()
-    frame:ClearAllPoints()
-    frame:SetPoint(db.point or "CENTER", UIParent, db.point or "CENTER", db.x or 0, db.y or 50)
-    frame:SetSize(db.width or 220, db.height or 48)
-    frame:EnableMouse(db.enabled and db.unlock)
-    if db.enabled and db.unlock then
-        frame.bg:Show()
-    else
-        frame.bg:Hide()
-    end
-
-    local fontSize = math.max(8, math.min(32, tonumber(db.fontSize) or 12))
-    if not frame.text:SetFont(FONT_MEDIA[3].path, fontSize, "OUTLINE") then
-        frame.text:SetFont(STANDARD_TEXT_FONT, fontSize, "OUTLINE")
-    end
-    frame.text:SetTextColor(1, 1, 1, 1)
-
-    if not db.enabled then
-        StopMovementTrackerTicker()
-        frame:Hide()
-        return
-    end
-
-    if db.unlock then
-        frame.text:SetText("MOVEMENT TRACKER")
-        frame:Show()
-        StopMovementTrackerTicker()
-        return
-    end
-
-    if db.combatOnly and not (UnitAffectingCombat and UnitAffectingCombat("player")) then
-        StopMovementTrackerTicker()
-        frame:Hide()
-        return
-    end
-
-    local lines = {}
-    for _, entry in ipairs(GetMovementTrackerSpells()) do
-        if IsMovementBuffActive(entry) then
-            lines[#lines + 1] = entry.activeText
+    frame.UpdateDisplay = function()
+        local db = MovementTracker.GetDB()
+        frame:ClearAllPoints()
+        frame:SetPoint(db.point or "CENTER", UIParent, db.point or "CENTER", db.x or 0, db.y or 50)
+        frame:SetSize(db.width or 220, db.height or 48)
+        frame:EnableMouse(db.enabled and db.unlock)
+        if db.enabled and db.unlock then
+            frame.bg:Show()
         else
-            local remaining = GetMovementCooldownRemaining(entry)
-            if remaining and remaining > 0 then
-                lines[#lines + 1] = string.format("No %s %.1f", entry.name, remaining)
+            frame.bg:Hide()
+        end
+
+        local fontSize = math.max(8, math.min(32, tonumber(db.fontSize) or 12))
+        if not frame.text:SetFont(FONT_MEDIA[3].path, fontSize, "OUTLINE") then
+            frame.text:SetFont(STANDARD_TEXT_FONT, fontSize, "OUTLINE")
+        end
+        frame.text:SetTextColor(1, 1, 1, 1)
+
+        if not db.enabled then
+            MovementTracker.HideFrame()
+            return
+        end
+
+        if db.unlock then
+            MovementTracker.StopTicker()
+            frame.text:SetText("MOVEMENT TRACKER")
+            frame:Show()
+            return
+        end
+
+        if db.combatOnly and not MovementTracker.inCombat and not (UnitAffectingCombat and UnitAffectingCombat("player")) then
+            MovementTracker.HideFrame()
+            return
+        end
+
+        local lines = {}
+        for _, entry in ipairs(MovementTracker.cachedSpells) do
+            if entry.activeText and MovementTracker.IsBuffActive(entry) then
+                lines[#lines + 1] = entry.activeText
+            elseif not entry.activeText then
+                local remaining = MovementTracker.GetRemaining(entry)
+                if remaining and remaining > 0 then
+                    lines[#lines + 1] = string.format("No %s %.1f", entry.name, remaining)
+                end
             end
+        end
+
+        if #lines == 0 then
+            MovementTracker.HideFrame()
+            return
+        end
+
+        frame.text:SetText(table.concat(lines, "\n"))
+        frame:Show()
+
+        if not MovementTracker.ticker then
+            local interval = math.max(50, db.pollRate or 100) / 1000
+            MovementTracker.ticker = C_Timer.NewTicker(interval, function()
+                if MovementTracker.frame then MovementTracker.frame.UpdateDisplay() end
+            end)
         end
     end
 
-    if #lines == 0 then
-        StopMovementTrackerTicker()
-        frame:Hide()
+    MovementTracker.frame = frame
+    return frame
+end
+
+function MovementTracker.UpdateDisplay()
+    local db = MovementTracker.GetDB()
+    if not db.enabled and not db.unlock then
+        MovementTracker.HideFrame()
         return
     end
-
-    frame.text:SetText(table.concat(lines, "\n"))
-    frame:Show()
-    StartMovementTrackerTicker()
+    MovementTracker.CreateFrame().UpdateDisplay()
 end
 
-local function GetMovementTrackerSpellSummary()
-    local names = {}
-    for _, entry in ipairs(GetMovementTrackerSpells()) do
-        names[#names + 1] = entry.name
-    end
-    if #names == 0 then return "none for current spec" end
-    return table.concat(names, ", ")
-end
+function MovementTracker.InitializeEvents()
+    if MovementTracker.eventFrame then return end
+    MovementTracker.eventFrame = CreateFrame("Frame")
+    MovementTracker.eventFrame:RegisterEvent("PLAYER_LOGIN")
+    MovementTracker.eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+    MovementTracker.eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
+    MovementTracker.eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+    MovementTracker.eventFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+    MovementTracker.eventFrame:RegisterEvent("TRAIT_CONFIG_UPDATED")
+    MovementTracker.eventFrame:RegisterEvent("SPELL_UPDATE_COOLDOWN")
+    MovementTracker.eventFrame:RegisterEvent("SPELL_UPDATE_CHARGES")
+    MovementTracker.eventFrame:RegisterEvent("SPELL_UPDATE_USABLE")
+    MovementTracker.eventFrame:RegisterUnitEvent("UNIT_AURA", "player")
+    MovementTracker.eventFrame:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
+    MovementTracker.eventFrame:SetScript("OnEvent", function(_, event, ...)
+        if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then
+            MovementTracker.inCombat = UnitAffectingCombat and UnitAffectingCombat("player")
+            if not MovementTracker.inCombat then MovementTracker.CacheSpells(true) end
+            MovementTracker.SyncBuffs()
+        elseif event == "PLAYER_REGEN_DISABLED" then
+            MovementTracker.inCombat = true
+            MovementTracker.SyncBuffs()
+        elseif event == "PLAYER_REGEN_ENABLED" then
+            MovementTracker.inCombat = false
+            MovementTracker.ClearRechargeTimers()
+            wipe(MovementTracker.rechargeStart)
+            MovementTracker.CacheSpells(false)
+            MovementTracker.SyncBuffs()
+        elseif event == "PLAYER_SPECIALIZATION_CHANGED" or event == "TRAIT_CONFIG_UPDATED" then
+            if not (InCombatLockdown and InCombatLockdown()) then
+                MovementTracker.CacheSpells(true)
+                MovementTracker.SyncBuffs()
+            end
+        elseif event == "SPELL_UPDATE_COOLDOWN" or event == "SPELL_UPDATE_CHARGES" or event == "SPELL_UPDATE_USABLE" then
+            MovementTracker.UpdateCachedCharges()
+        elseif event == "UNIT_AURA" then
+            local unit, updateInfo = ...
+            if unit ~= "player" then return end
+            MovementTracker.OnAuraUpdate(updateInfo)
+            MovementTracker.UpdateCachedCharges()
+        elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
+            local unit, _, spellId = ...
+            if unit == "player" and spellId then
+                MovementTracker.OnSpellCast(spellId)
+            end
+        end
 
-local function InitializeMovementTrackerEvents()
-    if movementTrackerEventFrame then return end
-    movementTrackerEventFrame = CreateFrame("Frame")
-    movementTrackerEventFrame:RegisterEvent("PLAYER_LOGIN")
-    movementTrackerEventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-    movementTrackerEventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
-    movementTrackerEventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
-    movementTrackerEventFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
-    movementTrackerEventFrame:RegisterEvent("TRAIT_CONFIG_UPDATED")
-    movementTrackerEventFrame:RegisterEvent("SPELL_UPDATE_COOLDOWN")
-    movementTrackerEventFrame:RegisterEvent("SPELL_UPDATE_CHARGES")
-    movementTrackerEventFrame:RegisterEvent("SPELL_UPDATE_USABLE")
-    movementTrackerEventFrame:RegisterUnitEvent("UNIT_AURA", "player")
-    movementTrackerEventFrame:SetScript("OnEvent", function(_, event, unit)
-        if event == "UNIT_AURA" and unit ~= "player" then return end
-        UpdateMovementTrackerDisplay()
+        MovementTracker.UpdateDisplay()
     end)
 end
 
@@ -928,6 +1222,7 @@ local function ForEachIdleFadeFrame(callback)
     end
 
     Visit(_G[FRAME_NAMES.player])
+    Visit(_G[FRAME_NAMES.pet])
     for _, name in ipairs(COOLDOWN_VIEWER_FRAME_NAMES) do
         Visit(_G[name])
     end
@@ -3411,7 +3706,7 @@ local function ShowCooldownImportFrame(initialTab)
                 page:SetMuted(message)
                 Print(message)
             end)
-            behaviors:AddToggle("Fade player frame, resource bars, and cooldowns while idle", YunoDB.fadeIdlePlayerAndCooldowns == true, function(_, checked)
+            behaviors:AddToggle("Fade player and pet frames, resource bars, and cooldowns while idle", YunoDB.fadeIdlePlayerAndCooldowns == true, function(_, checked)
                 YunoDB.fadeIdlePlayerAndCooldowns = checked
                 ScheduleIdleFadeUpdate(0)
                 local message = checked and "idle fade enabled" or "idle fade disabled"
@@ -3516,46 +3811,6 @@ local function ShowCooldownImportFrame(initialTab)
             return page
         end
 
-        local function RenderQualityOfLife()
-            local page = CreatePage("Movement Tracker", "Shows an alert while your current spec's movement tools are unavailable.")
-            local db = GetMovementTrackerDB()
-
-            local movement = page:AddSection("SETTINGS")
-            movement:AddInfoRow("Current spec spells", GetMovementTrackerSpellSummary())
-            movement:AddToggle("Enable movement tracker", db.enabled == true, function(_, checked)
-                db.enabled = checked
-                InitializeMovementTrackerEvents()
-                UpdateMovementTrackerDisplay()
-                local message = checked and "movement tracker enabled" or "movement tracker disabled"
-                page:SetMuted(message)
-                Print(message)
-            end)
-            movement:AddToggle("Unlock movement tracker", db.unlock == true, function(_, checked)
-                db.unlock = checked
-                UpdateMovementTrackerDisplay()
-                local message = checked and "movement tracker unlocked" or "movement tracker locked"
-                page:SetMuted(message)
-                Print(message)
-            end)
-            movement:AddToggle("Only show in combat", db.combatOnly == true, function(_, checked)
-                db.combatOnly = checked
-                UpdateMovementTrackerDisplay()
-                local message = checked and "movement tracker limited to combat" or "movement tracker can show outside combat"
-                page:SetMuted(message)
-                Print(message)
-            end)
-            movement:AddStepperRow("Font size", db.fontSize or 12, 8, 32, 1, function(_, value)
-                db.fontSize = value
-                UpdateMovementTrackerDisplay()
-                local message = "movement tracker font size set to " .. tostring(value)
-                page:SetMuted(message)
-                Print(message)
-            end)
-
-            page:UpdateLayout()
-            return page
-        end
-
         local function RenderGraphics()
             local page = CreatePage("Graphics", "Switch between FPS-focused and yuno's graphics CVar presets.")
             local actions = page:AddSection("PRESETS")
@@ -3618,6 +3873,53 @@ local function ShowCooldownImportFrame(initialTab)
             fpsButton = row.buttons and row.buttons[1]
             yunoButton = row.buttons and row.buttons[2]
             SetActiveGraphicsPreset(GetActiveGraphicsPreset())
+
+            page:UpdateLayout()
+            return page
+        end
+
+        local function RenderQualityOfLife()
+            local page = CreatePage("Movement Tracker", "Shows an alert while your current spec's movement tools are unavailable.")
+            local db = MovementTracker.GetDB()
+            MovementTracker.InitializeEvents()
+            if #MovementTracker.cachedSpells == 0 and not (InCombatLockdown and InCombatLockdown()) then
+                MovementTracker.CacheSpells(true)
+            end
+
+            local movement = page:AddSection("SETTINGS")
+            movement:AddInfoRow("Current spec spells", MovementTracker.GetSpellSummary())
+            movement:AddToggle("Enable movement tracker", db.enabled == true, function(_, checked)
+                db.enabled = checked
+                MovementTracker.InitializeEvents()
+                if checked and not (InCombatLockdown and InCombatLockdown()) then
+                    MovementTracker.CacheSpells(true)
+                end
+                MovementTracker.UpdateDisplay()
+                local message = checked and "movement tracker enabled" or "movement tracker disabled"
+                page:SetMuted(message)
+                Print(message)
+            end)
+            movement:AddToggle("Unlock movement tracker", db.unlock == true, function(_, checked)
+                db.unlock = checked
+                MovementTracker.UpdateDisplay()
+                local message = checked and "movement tracker unlocked" or "movement tracker locked"
+                page:SetMuted(message)
+                Print(message)
+            end)
+            movement:AddToggle("Only show in combat", db.combatOnly == true, function(_, checked)
+                db.combatOnly = checked
+                MovementTracker.UpdateDisplay()
+                local message = checked and "movement tracker limited to combat" or "movement tracker can show outside combat"
+                page:SetMuted(message)
+                Print(message)
+            end)
+            movement:AddStepperRow("Font size", db.fontSize or 12, 8, 32, 1, function(_, value)
+                db.fontSize = value
+                MovementTracker.UpdateDisplay()
+                local message = "movement tracker font size set to " .. tostring(value)
+                page:SetMuted(message)
+                Print(message)
+            end)
 
             page:UpdateLayout()
             return page
@@ -3888,7 +4190,7 @@ local function ShowHelp()
         ", opacity=" .. tostring(YunoDB.healthBarOpacity or 85) .. "%" ..
         ", tint=" .. math.floor((YunoDB.tint or 0.75) * 100 + 0.5) .. "%")
     Print("/yuno opens settings, /yuno help shows this list")
-    Print("/yuno on|off, /yuno bg on|off, /yuno dark on|off, /yuno theme on|off, /yuno idlefade on|off, /yuno paging on|off, /yuno chat right|left, /yuno cdm import, /yuno install ellesmere|bigwigs|editmode|blinkii|exboss|settings, /yuno profiles, /yuno cvars, /yuno fct on|off, /yuno fps, /yuno graphics yuno, /yuno tint 75, /yuno opacity 85, /yuno dmpos, /yuno media, /yuno apply")
+    Print("/yuno on|off, /yuno bg on|off, /yuno dark on|off, /yuno theme on|off, /yuno idlefade on|off, /yuno movement on|off|unlock|lock, /yuno paging on|off, /yuno chat right|left, /yuno cdm import, /yuno install ellesmere|bigwigs|editmode|blinkii|exboss|settings, /yuno profiles, /yuno cvars, /yuno fct on|off, /yuno fps, /yuno graphics yuno, /yuno tint 75, /yuno opacity 85, /yuno dmpos, /yuno media, /yuno apply")
 end
 
 SLASH_YUNO1 = "/yuno"
@@ -4006,21 +4308,24 @@ SlashCmdList.YUNO = function(msg)
         end
     elseif cmd == "qol" or cmd == "quality" or cmd == "movement" or cmd == "movementtracker" then
         if arg == "on" or arg == "1" or arg == "true" or arg == "enable" then
-            GetMovementTrackerDB().enabled = true
-            InitializeMovementTrackerEvents()
-            UpdateMovementTrackerDisplay()
+            MovementTracker.GetDB().enabled = true
+            MovementTracker.InitializeEvents()
+            if not (InCombatLockdown and InCombatLockdown()) then
+                MovementTracker.CacheSpells(true)
+            end
+            MovementTracker.UpdateDisplay()
             Print("movement tracker enabled")
         elseif arg == "off" or arg == "0" or arg == "false" or arg == "disable" then
-            GetMovementTrackerDB().enabled = false
-            UpdateMovementTrackerDisplay()
+            MovementTracker.GetDB().enabled = false
+            MovementTracker.UpdateDisplay()
             Print("movement tracker disabled")
         elseif arg == "unlock" then
-            GetMovementTrackerDB().unlock = true
-            UpdateMovementTrackerDisplay()
+            MovementTracker.GetDB().unlock = true
+            MovementTracker.UpdateDisplay()
             Print("movement tracker unlocked")
         elseif arg == "lock" then
-            GetMovementTrackerDB().unlock = false
-            UpdateMovementTrackerDisplay()
+            MovementTracker.GetDB().unlock = false
+            MovementTracker.UpdateDisplay()
             Print("movement tracker locked")
         else
             ShowCooldownImportFrame("qol")
@@ -4156,14 +4461,12 @@ eventFrame:SetScript("OnEvent", function(_, event, addonName)
 
     if not fontsRegistered or not statusbarsRegistered then RegisterMedia() end
     EnsureDB()
-    InitializeMovementTrackerEvents()
     HookFriendlyPlayerNameplateCVars()
     HookReload()
     local forceThemeLive = event == "ADDON_LOADED" or event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD"
     ApplyEllesmereThemeSettings(forceThemeLive)
     if ApplyConfiguredProfileSettings() then ReloadEllesmereFrames() end
     ApplyAll()
-    UpdateMovementTrackerDisplay()
     ScheduleApplyBurst()
     ScheduleIdleFadeUpdate(0)
 
@@ -4183,13 +4486,11 @@ end)
 C_Timer.After(0, function()
     RegisterMedia()
     EnsureDB()
-    InitializeMovementTrackerEvents()
     HookFriendlyPlayerNameplateCVars()
     HookReload()
     ApplyEllesmereThemeSettings(true)
     ApplyConfiguredProfileSettings()
     ApplyAll()
-    UpdateMovementTrackerDisplay()
     ScheduleIdleFadeUpdate(0)
     ScheduleStartupRetries()
 end)
@@ -4202,6 +4503,5 @@ C_Timer.After(1, function()
     ApplyEllesmereThemeSettings(true)
     if ApplyConfiguredProfileSettings() then ReloadEllesmereFrames() end
     ApplyAll()
-    UpdateMovementTrackerDisplay()
     ScheduleIdleFadeUpdate(0)
 end)
