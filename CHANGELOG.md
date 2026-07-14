@@ -1,7 +1,21 @@
+## yuno 3.10
+
+- Fixed party and raid health background flicker while units take damage.
+- Added an Appearance mode choice for Dark Mode or Class Colored in `/yuno` and the installer.
+- Added a login popup when bundled profiles have been updated, prompting to reimport only the changed ones.
+- Updated the bundled EllesmereUI import profile.
+- Moved Cooldown Manager import ahead of EllesmereUI in the installer so EUI is the final import step.
+- Moved the Appearance color choice to after EllesmereUI import so it applies to the imported profile.
+
+## yuno 3.02
+
+- Changed the optional forced sound channel override from 32 to 70.
+
 ## yuno 3.01
 
 - Rebuilt the Movement Tracker with combat-safe charge caching.
 - Added the pet healthbar to idle fade.
+- Added a sound channel override that keeps `Sound_NumChannels` at 32.
 
 ## yuno 3.0
 

@@ -35,12 +35,20 @@ local FONT_MEDIA = {
 local STATUSBAR_MEDIA = {
     { name = "Skyline Compact", path = "Interface\\AddOns\\yuno\\media\\bar_skyline_compact.png" },
 }
-local YUNO_THEME_NAME = "Custom Color"
-local YUNO_THEME_COLOR = { r = 0x05 / 255, g = 0x1b / 255, b = 0x2d / 255 }
-local YUNO_ACCENT_COLOR = { r = 0x00 / 255, g = 0xad / 255, b = 0xff / 255 }
-local YUNO_UI_SCALE = 0.5333333333
-local IDLE_FADE_ALPHA = 0.07
-local IDLE_FADE_INTERVAL = 0.35
+-- Packed into tables to stay under Lua's 200-local main-chunk limit.
+local CONST = {
+    THEME_NAME = "Custom Color",
+    THEME_COLOR = { r = 0x05 / 255, g = 0x1b / 255, b = 0x2d / 255 },
+    ACCENT_COLOR = { r = 0x00 / 255, g = 0xad / 255, b = 0xff / 255 },
+    DARK_BG_COLOR = { r = 0x11 / 255, g = 0x11 / 255, b = 0x11 / 255 },
+    UI_SCALE = 0.5333333333,
+    idleFadeAlpha = 0.07,
+    idleFadeInterval = 0.35,
+    soundChannelsCVar = "Sound_NumChannels",
+    soundChannelsValue = "70",
+    soundChannelsCheckInterval = 300,
+    profilePromptVersion = 1,
+}
 local COOLDOWN_VIEWER_FRAME_NAMES = {
     "EssentialCooldownViewer",
     "UtilityCooldownViewer",
@@ -53,16 +61,37 @@ local RESOURCE_BAR_FRAME_NAMES = {
     "ERB_SecondaryFrame",
     "ERB_SecondaryBar",
 }
-local pendingApply = false
-local hookedReload
-local hookedRaidReload
-local startupRetryVersion = 0
-local profileOfferScheduled = false
-local freshInstallerOpenScheduled = false
+local State = {
+    pendingApply = false,
+    hookedReload = nil,
+    hookedRaidReload = nil,
+    startupRetryVersion = 0,
+    profileOfferScheduled = false,
+    freshInstallerOpenScheduled = false,
+    cooldownImportFrame = nil,
+    installerFrame = nil,
+    installedProfilesPromptFrame = nil,
+    profileUpdatePromptFrame = nil,
+    fontsRegistered = false,
+    statusbarsRegistered = false,
+    friendlyNameplateCVarHooked = false,
+    soundChannelsCVarHooked = false,
+    soundChannelsTicker = nil,
+    actionBarPagingDeferFrame = nil,
+    actionBarPagingOverrideApplied = false,
+    actionBarPagingBindOwner = nil,
+    actionBarPagingKeybindHooked = false,
+    idleFadeFrame = nil,
+    idleFadeTouchedFrames = {},
+    raidFrameHealthCache = setmetatable({}, { __mode = "k" }),
+    raidFrameBackgroundCache = setmetatable({}, { __mode = "k" }),
+}
 local HookReload
-local cooldownImportFrame
-local installerFrame
-local installedProfilesPromptFrame
+local ScheduleApply
+local ReloadEllesmereFrames
+local EnsureDB
+local GetBundledProfileVersion
+local MarkImportedProfileVersion
 local MovementTracker = {
     knownCharges = {},
     cachedSpells = {},
@@ -74,18 +103,6 @@ local MovementTracker = {
     buffState = {},
     inCombat = false,
 }
-local fontsRegistered = false
-local statusbarsRegistered = false
-local friendlyNameplateCVarHooked = false
-local actionBarPagingDeferFrame
-local actionBarPagingOverrideApplied = false
-local actionBarPagingBindOwner
-local actionBarPagingKeybindHooked = false
-local idleFadeFrame
-local idleFadeTouchedFrames = {}
-local raidFrameHealthCache = setmetatable({}, { __mode = "k" })
-local raidFrameBackgroundCache = setmetatable({}, { __mode = "k" })
-local PROFILE_PROMPT_VERSION = 1
 local EXBOSS_IMPORT_SLOT_KEYS = {
     "raid_tank",
     "raid_dps",
@@ -119,7 +136,7 @@ local function RegisterFonts()
         end
     end
 
-    fontsRegistered = true
+    State.fontsRegistered = true
     return true
 end
 
@@ -131,7 +148,7 @@ local function RegisterStatusbars()
         LSM:Register(LSM.MediaType.STATUSBAR, bar.name, bar.path)
     end
 
-    statusbarsRegistered = true
+    State.statusbarsRegistered = true
     return true
 end
 
@@ -348,17 +365,17 @@ local function ApplyYunoUIScale(applyLive)
     if type(EllesmereUIDB) ~= "table" then EllesmereUIDB = {} end
     EllesmereUIDB.ppFixedScale = true
     EllesmereUIDB.ppUIScaleAuto = false
-    EllesmereUIDB.ppUIScale = YUNO_UI_SCALE
+    EllesmereUIDB.ppUIScale = CONST.UI_SCALE
 
     SetYunoCVar("useUiScale", 1)
-    SetYunoCVar("uiScale", YUNO_UI_SCALE)
+    SetYunoCVar("uiScale", CONST.UI_SCALE)
 
     if not applyLive then return end
 
     if EllesmereUI and EllesmereUI.PP and type(EllesmereUI.PP.SetUIScale) == "function" then
-        pcall(EllesmereUI.PP.SetUIScale, YUNO_UI_SCALE)
+        pcall(EllesmereUI.PP.SetUIScale, CONST.UI_SCALE)
     elseif UIParent and UIParent.SetScale and not (InCombatLockdown and InCombatLockdown()) then
-        UIParent:SetScale(YUNO_UI_SCALE)
+        UIParent:SetScale(CONST.UI_SCALE)
     end
 end
 
@@ -382,6 +399,8 @@ local function ImportEllesmereUIProfile()
         return false, tostring(err or "EllesmereUI import failed")
     end
 
+    MarkImportedProfileVersion("ellesmereui")
+
     if status == "spec_locked" then
         return true, "EllesmereUI profile imported as yuno; current spec keeps its assigned profile"
     end
@@ -401,7 +420,16 @@ local function ImportBigWigsProfile(callback)
         return false, "BigWigs import API is not available"
     end
 
-    local ok, err = pcall(BigWigsAPI.RegisterProfile, "yuno", importString, "yuno", callback)
+    local wrappedCallback = function(accepted)
+        if accepted then
+            MarkImportedProfileVersion("bigwigs")
+        end
+        if callback then
+            callback(accepted)
+        end
+    end
+
+    local ok, err = pcall(BigWigsAPI.RegisterProfile, "yuno", importString, "yuno", wrappedCallback)
     if not ok then
         return false, tostring(err)
     end
@@ -464,6 +492,7 @@ local function ImportEditModeLayout()
         pcall(C_EditMode.SetAccountSetting, 0, 0)
     end
 
+    MarkImportedProfileVersion("editmode")
     return true, "Edit Mode layout imported as yuno"
 end
 
@@ -512,6 +541,7 @@ local function ImportBlinkiisPortraitsProfile()
         pcall(BLINKIISPORTRAITS.LoadPortraits, BLINKIISPORTRAITS)
     end
 
+    MarkImportedProfileVersion("blinkiiportraits")
     return true, "Blinkii's Portraits profile imported as yuno"
 end
 
@@ -566,16 +596,32 @@ local function ImportEXBossProfile()
         return false, tostring(err or "EXBoss import failed")
     end
 
+    MarkImportedProfileVersion("exboss")
     return true, "EXBoss profile imported as yuno"
 end
 
-local function EnsureDB()
+GetBundledProfileVersion = function(key)
+    local versions = YunoProfiles and YunoProfiles.versions
+    local version = versions and versions[key]
+    if type(version) == "number" then return version end
+    return 1
+end
+
+MarkImportedProfileVersion = function(key)
+    if type(key) ~= "string" or key == "" then return end
+    EnsureDB()
+    YunoDB.importedProfileVersions[key] = GetBundledProfileVersion(key)
+    YunoDB.profileUpdateDismissed[key] = nil
+end
+
+EnsureDB = function()
     if type(YunoDB) ~= "table" then YunoDB = {} end
     if YunoDB.autoPresetVersion ~= 1 then
         YunoDB.enabled = true
         YunoDB.classBackground = true
         YunoDB.darkOpacity = true
         YunoDB.forceDarkMode = true
+        YunoDB.appearanceMode = "dark"
         YunoDB.forceEUITheme = true
         YunoDB.forceOpacity = true
         YunoDB.forceChatSidebarRight = true
@@ -589,10 +635,14 @@ local function EnsureDB()
     if YunoDB.classBackground == nil then YunoDB.classBackground = true end
     if YunoDB.darkOpacity == nil then YunoDB.darkOpacity = true end
     if YunoDB.forceDarkMode == nil then YunoDB.forceDarkMode = true end
+    if YunoDB.appearanceMode ~= "dark" and YunoDB.appearanceMode ~= "class" then
+        YunoDB.appearanceMode = YunoDB.forceDarkMode and "dark" or "class"
+    end
     if YunoDB.forceEUITheme == nil then YunoDB.forceEUITheme = true end
     if YunoDB.forceOpacity == nil then YunoDB.forceOpacity = true end
     if YunoDB.forceChatSidebarRight == nil then YunoDB.forceChatSidebarRight = true end
     if YunoDB.disableFriendlyPlayerNameplates == nil then YunoDB.disableFriendlyPlayerNameplates = true end
+    if YunoDB.forceSoundChannels == nil then YunoDB.forceSoundChannels = true end
     if YunoDB.fadeIdlePlayerAndCooldowns == nil then YunoDB.fadeIdlePlayerAndCooldowns = false end
     if YunoDB.disableEllesmereActionBarPaging == nil then YunoDB.disableEllesmereActionBarPaging = false end
     if type(YunoDB.healthBarOpacity) ~= "number" then YunoDB.healthBarOpacity = 85 end
@@ -600,6 +650,9 @@ local function EnsureDB()
     if type(YunoDB.profilePromptApplied) ~= "table" then YunoDB.profilePromptApplied = {} end
     if type(YunoDB.profilePromptDismissed) ~= "table" then YunoDB.profilePromptDismissed = {} end
     if YunoDB.profilePromptEnabled == nil then YunoDB.profilePromptEnabled = true end
+    if type(YunoDB.importedProfileVersions) ~= "table" then YunoDB.importedProfileVersions = {} end
+    if type(YunoDB.profileUpdateDismissed) ~= "table" then YunoDB.profileUpdateDismissed = {} end
+    if YunoDB.profileUpdateEnabled == nil then YunoDB.profileUpdateEnabled = true end
     if YunoDB.graphicsPreset ~= "fps" and YunoDB.graphicsPreset ~= "yuno" then YunoDB.graphicsPreset = nil end
     if YunoDB.floatingCombatTextPreset ~= "enabled" and YunoDB.floatingCombatTextPreset ~= "disabled" then YunoDB.floatingCombatTextPreset = nil end
     if type(YunoDB.qol) ~= "table" then YunoDB.qol = {} end
@@ -1172,7 +1225,7 @@ local function ScheduleFriendlyPlayerNameplatePreference(delay)
 end
 
 local function HookFriendlyPlayerNameplateCVars()
-    if friendlyNameplateCVarHooked or not hooksecurefunc then return end
+    if State.friendlyNameplateCVarHooked or not hooksecurefunc then return end
 
     local function WatchFriendlyNameplateCVar(name, value)
         if type(YunoDB) ~= "table" or not YunoDB.disableFriendlyPlayerNameplates then return end
@@ -1183,19 +1236,64 @@ local function HookFriendlyPlayerNameplateCVars()
 
     if SetCVar then pcall(hooksecurefunc, "SetCVar", WatchFriendlyNameplateCVar) end
     if C_CVar and C_CVar.SetCVar then pcall(hooksecurefunc, C_CVar, "SetCVar", WatchFriendlyNameplateCVar) end
-    friendlyNameplateCVarHooked = true
+    State.friendlyNameplateCVarHooked = true
+end
+
+local function ApplySoundChannelPreference()
+    EnsureDB()
+    if YunoDB.forceSoundChannels ~= true then return false end
+    if tostring(GetYunoCVar(CONST.soundChannelsCVar)) == CONST.soundChannelsValue then return false end
+
+    return SetYunoCVar(CONST.soundChannelsCVar, CONST.soundChannelsValue)
+end
+
+local function ScheduleSoundChannelPreference(delay)
+    C_Timer.After(delay or 0, function()
+        ApplySoundChannelPreference()
+    end)
+end
+
+local function HookSoundChannelCVar()
+    if State.soundChannelsCVarHooked or not hooksecurefunc then return end
+
+    local function WatchSoundChannelCVar(name, value)
+        if type(YunoDB) ~= "table" or YunoDB.forceSoundChannels ~= true then return end
+        if name ~= CONST.soundChannelsCVar then return end
+        if tostring(value) == CONST.soundChannelsValue then return end
+        ScheduleSoundChannelPreference(0)
+    end
+
+    if SetCVar then pcall(hooksecurefunc, "SetCVar", WatchSoundChannelCVar) end
+    if C_CVar and C_CVar.SetCVar then pcall(hooksecurefunc, C_CVar, "SetCVar", WatchSoundChannelCVar) end
+    State.soundChannelsCVarHooked = true
+end
+
+local function UpdateSoundChannelWatcher()
+    EnsureDB()
+
+    if YunoDB.forceSoundChannels == true then
+        if not State.soundChannelsTicker and C_Timer and C_Timer.NewTicker then
+            State.soundChannelsTicker = C_Timer.NewTicker(CONST.soundChannelsCheckInterval, function()
+                ApplySoundChannelPreference()
+            end)
+        end
+        ApplySoundChannelPreference()
+    elseif State.soundChannelsTicker then
+        State.soundChannelsTicker:Cancel()
+        State.soundChannelsTicker = nil
+    end
 end
 
 local function RestoreIdleFadeFrames()
-    for frame in pairs(idleFadeTouchedFrames) do
+    for frame in pairs(State.idleFadeTouchedFrames) do
         if frame and type(frame.SetAlpha) == "function" then
             pcall(frame.SetAlpha, frame, frame._yunoIdleFadeBaseAlpha or 1)
             frame._yunoIdleFaded = nil
             frame._yunoIdleFadeBaseAlpha = nil
         end
     end
-    for frame in pairs(idleFadeTouchedFrames) do
-        idleFadeTouchedFrames[frame] = nil
+    for frame in pairs(State.idleFadeTouchedFrames) do
+        State.idleFadeTouchedFrames[frame] = nil
     end
 end
 
@@ -1257,16 +1355,16 @@ local function ApplyIdleFadeState()
         if alpha <= 0 then
             frame._yunoIdleFaded = nil
             frame._yunoIdleFadeBaseAlpha = nil
-            idleFadeTouchedFrames[frame] = nil
+            State.idleFadeTouchedFrames[frame] = nil
             return
         end
 
-        if not frame._yunoIdleFaded or math.abs(alpha - IDLE_FADE_ALPHA) > 0.001 then
+        if not frame._yunoIdleFaded or math.abs(alpha - CONST.idleFadeAlpha) > 0.001 then
             frame._yunoIdleFadeBaseAlpha = alpha
         end
         frame._yunoIdleFaded = true
-        idleFadeTouchedFrames[frame] = true
-        frame:SetAlpha(IDLE_FADE_ALPHA)
+        State.idleFadeTouchedFrames[frame] = true
+        frame:SetAlpha(CONST.idleFadeAlpha)
     end)
 end
 
@@ -1274,19 +1372,19 @@ local function UpdateIdleFadeController()
     EnsureDB()
 
     if YunoDB.enabled and YunoDB.fadeIdlePlayerAndCooldowns == true then
-        if not idleFadeFrame then
-            idleFadeFrame = CreateFrame("Frame")
+        if not State.idleFadeFrame then
+            State.idleFadeFrame = CreateFrame("Frame")
         end
-        idleFadeFrame.elapsed = IDLE_FADE_INTERVAL
-        idleFadeFrame:SetScript("OnUpdate", function(self, elapsed)
+        State.idleFadeFrame.elapsed = CONST.idleFadeInterval
+        State.idleFadeFrame:SetScript("OnUpdate", function(self, elapsed)
             self.elapsed = (self.elapsed or 0) + elapsed
-            if self.elapsed < IDLE_FADE_INTERVAL then return end
+            if self.elapsed < CONST.idleFadeInterval then return end
             self.elapsed = 0
             ApplyIdleFadeState()
         end)
         ApplyIdleFadeState()
     else
-        if idleFadeFrame then idleFadeFrame:SetScript("OnUpdate", nil) end
+        if State.idleFadeFrame then State.idleFadeFrame:SetScript("OnUpdate", nil) end
         RestoreIdleFadeFrames()
     end
 end
@@ -1342,13 +1440,13 @@ local function ApplyEllesmereThemeSettings(forceLive, refreshOptions)
     if type(root) ~= "table" then return false end
 
     local changed = false
-    if root.activeTheme ~= YUNO_THEME_NAME then
-        root.activeTheme = YUNO_THEME_NAME
+    if root.activeTheme ~= CONST.THEME_NAME then
+        root.activeTheme = CONST.THEME_NAME
         changed = true
     end
 
-    if not SameColor(root.accentColor, YUNO_THEME_COLOR) then
-        root.accentColor = CopyColor(YUNO_THEME_COLOR)
+    if not SameColor(root.accentColor, CONST.THEME_COLOR) then
+        root.accentColor = CopyColor(CONST.THEME_COLOR)
         changed = true
     end
 
@@ -1357,20 +1455,20 @@ local function ApplyEllesmereThemeSettings(forceLive, refreshOptions)
         changed = true
     end
 
-    if not SameColor(root.customAccentColor, YUNO_ACCENT_COLOR) then
-        root.customAccentColor = CopyColor(YUNO_ACCENT_COLOR)
+    if not SameColor(root.customAccentColor, CONST.ACCENT_COLOR) then
+        root.customAccentColor = CopyColor(CONST.ACCENT_COLOR)
         changed = true
     end
 
     if EllesmereUI and (changed or forceLive or refreshOptions) then
         if type(EllesmereUI.SetActiveTheme) == "function" then
-            EllesmereUI.SetActiveTheme(YUNO_THEME_NAME)
+            EllesmereUI.SetActiveTheme(CONST.THEME_NAME)
         end
 
         if type(EllesmereUI.SetAccentColor) == "function" then
-            EllesmereUI.SetAccentColor(YUNO_ACCENT_COLOR.r, YUNO_ACCENT_COLOR.g, YUNO_ACCENT_COLOR.b)
+            EllesmereUI.SetAccentColor(CONST.ACCENT_COLOR.r, CONST.ACCENT_COLOR.g, CONST.ACCENT_COLOR.b)
         elseif type(EllesmereUI.ApplyAccentColorLive) == "function" then
-            EllesmereUI.ApplyAccentColorLive(YUNO_ACCENT_COLOR.r, YUNO_ACCENT_COLOR.g, YUNO_ACCENT_COLOR.b)
+            EllesmereUI.ApplyAccentColorLive(CONST.ACCENT_COLOR.r, CONST.ACCENT_COLOR.g, CONST.ACCENT_COLOR.b)
         end
 
         if refreshOptions and type(EllesmereUI.RefreshPage) == "function" then
@@ -1697,10 +1795,10 @@ end
 local function ApplyYunoMainBarKeybindOverride()
     if InCombatLockdown and InCombatLockdown() then return false end
 
-    if not actionBarPagingBindOwner then
-        actionBarPagingBindOwner = CreateFrame("Frame", "YunoActionBarPagingBindOwner", UIParent)
+    if not State.actionBarPagingBindOwner then
+        State.actionBarPagingBindOwner = CreateFrame("Frame", "YunoActionBarPagingBindOwner", UIParent)
     end
-    ClearOverrideBindings(actionBarPagingBindOwner)
+    ClearOverrideBindings(State.actionBarPagingBindOwner)
 
     if YunoDB.disableEllesmereActionBarPaging ~= true then
         return true
@@ -1711,8 +1809,8 @@ local function ApplyYunoMainBarKeybindOverride()
         local buttonName = button and button:GetName()
         if buttonName then
             local key1, key2 = GetBindingKey("ACTIONBUTTON" .. i)
-            if key1 then SetOverrideBindingClick(actionBarPagingBindOwner, true, key1, buttonName) end
-            if key2 then SetOverrideBindingClick(actionBarPagingBindOwner, true, key2, buttonName) end
+            if key1 then SetOverrideBindingClick(State.actionBarPagingBindOwner, true, key1, buttonName) end
+            if key2 then SetOverrideBindingClick(State.actionBarPagingBindOwner, true, key2, buttonName) end
         end
     end
 
@@ -1720,26 +1818,26 @@ local function ApplyYunoMainBarKeybindOverride()
 end
 
 local function HookYunoMainBarKeybindOverride()
-    if actionBarPagingKeybindHooked or type(_G._EAB_UpdateKeybinds) ~= "function" or not hooksecurefunc then return end
+    if State.actionBarPagingKeybindHooked or type(_G._EAB_UpdateKeybinds) ~= "function" or not hooksecurefunc then return end
     local ok = pcall(hooksecurefunc, "_EAB_UpdateKeybinds", function()
         if type(YunoDB) == "table" and YunoDB.disableEllesmereActionBarPaging == true then
             C_Timer.After(0, ApplyYunoMainBarKeybindOverride)
         end
     end)
-    actionBarPagingKeybindHooked = ok and true or false
+    State.actionBarPagingKeybindHooked = ok and true or false
 end
 
 local function ApplyEllesmereActionBarPagingOverride()
     EnsureDB()
     if InCombatLockdown and InCombatLockdown() then
-        if not actionBarPagingDeferFrame then
-            actionBarPagingDeferFrame = CreateFrame("Frame")
-            actionBarPagingDeferFrame:SetScript("OnEvent", function(self)
+        if not State.actionBarPagingDeferFrame then
+            State.actionBarPagingDeferFrame = CreateFrame("Frame")
+            State.actionBarPagingDeferFrame:SetScript("OnEvent", function(self)
                 self:UnregisterEvent("PLAYER_REGEN_ENABLED")
                 ApplyEllesmereActionBarPagingOverride()
             end)
         end
-        actionBarPagingDeferFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+        State.actionBarPagingDeferFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
         return false
     end
 
@@ -1747,7 +1845,7 @@ local function ApplyEllesmereActionBarPagingOverride()
     local profile = GetEllesmereAddonProfile("EllesmereUIActionBars")
     local pagingConfig = profile and profile.bars and profile.bars.MainBar and profile.bars.MainBar.paging
     local disableClassPaging = YunoDB.disableEllesmereActionBarPaging == true
-    if not disableClassPaging and not actionBarPagingOverrideApplied then return false end
+    if not disableClassPaging and not State.actionBarPagingOverrideApplied then return false end
 
     local frame = _G.EABBar_MainBar
     if not frame then return false end
@@ -1764,7 +1862,7 @@ local function ApplyEllesmereActionBarPagingOverride()
     end
 
     ApplyYunoMainBarKeybindOverride()
-    actionBarPagingOverrideApplied = disableClassPaging
+    State.actionBarPagingOverrideApplied = disableClassPaging
 
     return true
 end
@@ -2085,13 +2183,13 @@ end
 
 local function MarkProfilePromptApplied()
     EnsureDB()
-    YunoDB.profilePromptApplied[GetYunoCharacterKey()] = PROFILE_PROMPT_VERSION
+    YunoDB.profilePromptApplied[GetYunoCharacterKey()] = CONST.profilePromptVersion
     YunoDB.profilePromptDismissed[GetYunoCharacterKey()] = nil
 end
 
 local function MarkInstallerCompleted()
     EnsureDB()
-    YunoDB.installerCompletedVersion = PROFILE_PROMPT_VERSION
+    YunoDB.installerCompletedVersion = CONST.profilePromptVersion
     YunoDB.installerPendingFinalScale = nil
 end
 
@@ -2102,7 +2200,7 @@ end
 
 local function MarkProfilePromptDismissed()
     EnsureDB()
-    YunoDB.profilePromptDismissed[GetYunoCharacterKey()] = PROFILE_PROMPT_VERSION
+    YunoDB.profilePromptDismissed[GetYunoCharacterKey()] = CONST.profilePromptVersion
 end
 
 local function FindEditModeLayoutIndex(layoutName)
@@ -2403,11 +2501,11 @@ end
 local function ShouldOfferInstalledProfiles()
     EnsureDB()
     if YunoDB.profilePromptEnabled == false then return false end
-    if YunoDB.installerCompletedVersion ~= PROFILE_PROMPT_VERSION then return false end
+    if YunoDB.installerCompletedVersion ~= CONST.profilePromptVersion then return false end
 
     local key = GetYunoCharacterKey()
-    if YunoDB.profilePromptApplied[key] == PROFILE_PROMPT_VERSION then return false end
-    if YunoDB.profilePromptDismissed[key] == PROFILE_PROMPT_VERSION then return false end
+    if YunoDB.profilePromptApplied[key] == CONST.profilePromptVersion then return false end
+    if YunoDB.profilePromptDismissed[key] == CONST.profilePromptVersion then return false end
 
     return HasInstalledYunoProfiles()
 end
@@ -2459,7 +2557,7 @@ local function ShowInstalledProfilesPrompt()
         return button
     end
 
-    if not installedProfilesPromptFrame then
+    if not State.installedProfilesPromptFrame then
         local frame = UI:CreateWindow("YunoInstalledProfilesPromptFrame", UIParent, 500, 280)
         frame.subtitle:SetText("profiles")
 
@@ -2513,18 +2611,315 @@ local function ShowInstalledProfilesPrompt()
             UI:SetStatusColor(frame.status, false)
         end)
 
-        installedProfilesPromptFrame = frame
+        State.installedProfilesPromptFrame = frame
     end
 
-    installedProfilesPromptFrame.status:SetText("")
-    installedProfilesPromptFrame:Show()
+    State.installedProfilesPromptFrame.status:SetText("")
+    State.installedProfilesPromptFrame:Show()
+end
+
+local function GetManagedProfileDefs()
+    return {
+        {
+            key = "bigwigs",
+            label = "BigWigs",
+            exists = function()
+                TryLoadAddon("BigWigs")
+                return BigWigsProfileExists("yuno")
+            end,
+            import = ImportBigWigsProfile,
+            async = true,
+        },
+        {
+            key = "blinkiiportraits",
+            label = "Blinkii's Portraits",
+            exists = function()
+                TryLoadAddon("Blinkiis_Portraits")
+                return BlinkiisPortraitsProfileExists("yuno")
+            end,
+            import = ImportBlinkiisPortraitsProfile,
+        },
+        {
+            key = "exboss",
+            label = "EXBoss",
+            exists = function()
+                TryLoadAddon("EXBoss")
+                return EXBossProfileExists("yuno")
+            end,
+            import = ImportEXBossProfile,
+        },
+        {
+            key = "editmode",
+            label = "Edit Mode",
+            exists = function()
+                return FindEditModeLayoutIndex("yuno") ~= nil
+            end,
+            import = ImportEditModeLayout,
+        },
+        {
+            key = "ellesmereui",
+            label = "EllesmereUI",
+            exists = function()
+                TryLoadAddon("EllesmereUI")
+                return EllesmereProfileExists("yuno")
+            end,
+            import = ImportEllesmereUIProfile,
+        },
+    }
+end
+
+local function SeedInstalledProfileVersions()
+    EnsureDB()
+    if YunoDB.profileVersionsSeeded then return end
+
+    for _, def in ipairs(GetManagedProfileDefs()) do
+        if def.exists() and YunoDB.importedProfileVersions[def.key] == nil then
+            YunoDB.importedProfileVersions[def.key] = GetBundledProfileVersion(def.key)
+        end
+    end
+
+    YunoDB.profileVersionsSeeded = true
+end
+
+local function GetOutdatedInstalledProfiles()
+    EnsureDB()
+    SeedInstalledProfileVersions()
+
+    local outdated = {}
+    for _, def in ipairs(GetManagedProfileDefs()) do
+        if def.exists() then
+            local bundled = GetBundledProfileVersion(def.key)
+            local imported = YunoDB.importedProfileVersions[def.key]
+            if type(imported) ~= "number" then imported = 0 end
+            if imported < bundled and YunoDB.profileUpdateDismissed[def.key] ~= bundled then
+                outdated[#outdated + 1] = def
+            end
+        end
+    end
+    return outdated
+end
+
+local function MarkProfileUpdatesDismissed(outdated)
+    EnsureDB()
+    for _, def in ipairs(outdated or {}) do
+        YunoDB.profileUpdateDismissed[def.key] = GetBundledProfileVersion(def.key)
+    end
+end
+
+local function FormatProfileLabelList(defs)
+    local labels = {}
+    for _, def in ipairs(defs or {}) do
+        labels[#labels + 1] = def.label
+    end
+    if #labels == 0 then return "" end
+    if #labels == 1 then return labels[1] end
+    if #labels == 2 then return labels[1] .. " and " .. labels[2] end
+    return table.concat(labels, ", ", 1, #labels - 1) .. ", and " .. labels[#labels]
+end
+
+local function ReimportOutdatedProfiles(outdated, onDone)
+    local applied = {}
+    local failed = {}
+    local pendingAsync
+
+    for _, def in ipairs(outdated or {}) do
+        if def.async then
+            pendingAsync = def
+        else
+            local ok, message = def.import()
+            if ok then
+                applied[#applied + 1] = def.label
+            else
+                failed[#failed + 1] = def.label .. ": " .. tostring(message)
+            end
+        end
+    end
+
+    local function Finish(extraApplied, extraFailed)
+        for _, label in ipairs(extraApplied or {}) do
+            applied[#applied + 1] = label
+        end
+        for _, entry in ipairs(extraFailed or {}) do
+            failed[#failed + 1] = entry
+        end
+
+        local message
+        if #applied > 0 then
+            message = "reimported updated profiles: " .. table.concat(applied, ", ")
+        else
+            message = "no updated profiles were reimported"
+        end
+        if #failed > 0 then
+            message = message .. " (failed: " .. table.concat(failed, "; ") .. ")"
+        end
+
+        if onDone then
+            onDone(#applied > 0 and #failed == 0, message, #applied > 0)
+        end
+    end
+
+    if not pendingAsync then
+        Finish()
+        return
+    end
+
+    local ok, message = pendingAsync.import(function(accepted)
+        if accepted then
+            Finish({ pendingAsync.label })
+        else
+            Finish(nil, { pendingAsync.label .. ": cancelled" })
+        end
+    end)
+    if not ok then
+        Finish(nil, { pendingAsync.label .. ": " .. tostring(message) })
+    end
+end
+
+local function ShouldOfferProfileUpdates()
+    EnsureDB()
+    if YunoDB.profileUpdateEnabled == false then return false end
+    if YunoDB.installerCompletedVersion ~= CONST.profilePromptVersion then return false end
+    return #GetOutdatedInstalledProfiles() > 0
+end
+
+local function ShowProfileUpdatePrompt()
+    if InCombatLockdown and InCombatLockdown() then return end
+
+    local outdated = GetOutdatedInstalledProfiles()
+    if #outdated == 0 then return end
+
+    local UI = yuno and yuno.UI or YunoUI
+    if not UI then return end
+
+    local labelList = FormatProfileLabelList(outdated)
+    local copyText
+    if #outdated == 1 then
+        copyText = labelList .. " has been updated.\n\nReimport it to get the latest yuno settings?"
+    else
+        copyText = labelList .. " have been updated.\n\nReimport them to get the latest yuno settings?"
+    end
+
+    local function SetButtonBackground(button, color, alpha)
+        if not button.bg then
+            button.bg = button:CreateTexture(nil, "BACKGROUND")
+            button.bg:SetAllPoints()
+        end
+        button.bg:SetColorTexture(color[1], color[2], color[3], alpha or color[4] or 1)
+    end
+
+    local function CreateSolidButton(parent, label)
+        local button = CreateFrame("Frame", nil, parent)
+        button:SetSize(150, 36)
+        button:EnableMouse(true)
+        SetButtonBackground(button, UI.Theme.accent)
+
+        button.label = UI:CreateText(button, label, 12, "text", "bold")
+        button.label:SetPoint("CENTER")
+        button.label:SetTextColor(1, 1, 1, 1)
+
+        function button:SetOnClick(callback)
+            self._yunoOnClick = callback
+        end
+
+        button:SetScript("OnEnter", function(self)
+            SetButtonBackground(self, UI.Theme.accent, 0.86)
+        end)
+        button:SetScript("OnLeave", function(self)
+            SetButtonBackground(self, UI.Theme.accent)
+        end)
+        button:SetScript("OnMouseDown", function(self, mouseButton)
+            if mouseButton ~= "LeftButton" then return end
+            SetButtonBackground(self, UI.Theme.accent, 0.70)
+        end)
+        button:SetScript("OnMouseUp", function(self, mouseButton)
+            SetButtonBackground(self, UI.Theme.accent, self:IsMouseOver() and 0.86 or 1)
+            if mouseButton == "LeftButton" and self._yunoOnClick then self:_yunoOnClick() end
+        end)
+
+        return button
+    end
+
+    if not State.profileUpdatePromptFrame then
+        local frame = UI:CreateWindow("YunoProfileUpdatePromptFrame", UIParent, 520, 300)
+        frame.subtitle:SetText("profiles")
+
+        frame.body = CreateFrame("Frame", nil, frame)
+        frame.body:SetPoint("TOPLEFT", 28, -64)
+        frame.body:SetPoint("BOTTOMRIGHT", -28, 24)
+
+        frame.logo = frame.body:CreateTexture(nil, "ARTWORK")
+        frame.logo:SetTexture("Interface\\AddOns\\yuno\\media\\logo.png")
+        frame.logo:SetSize(76, 76)
+        frame.logo:SetPoint("TOP", frame.body, "TOP", 0, 0)
+
+        frame.heading = UI:CreateText(frame.body, "Profiles updated", 21, "text", "bold")
+        frame.heading:SetPoint("TOPLEFT", frame.logo, "BOTTOMLEFT", -200, -14)
+        frame.heading:SetPoint("TOPRIGHT", frame.logo, "BOTTOMRIGHT", 200, -14)
+        frame.heading:SetJustifyH("CENTER")
+
+        frame.copy = UI:CreateText(frame.body, "", 12, "muted", "semibold")
+        frame.copy:SetPoint("TOPLEFT", frame.heading, "BOTTOMLEFT", 0, -12)
+        frame.copy:SetPoint("TOPRIGHT", frame.heading, "BOTTOMRIGHT", 0, -12)
+        frame.copy:SetJustifyH("CENTER")
+        frame.copy:SetSpacing(5)
+
+        frame.status = UI:CreateText(frame.body, "", 11, "muted", "semibold")
+        frame.status:SetPoint("BOTTOMLEFT", frame.body, "BOTTOMLEFT", 0, 42)
+        frame.status:SetPoint("BOTTOMRIGHT", frame.body, "BOTTOMRIGHT", 0, 42)
+        frame.status:SetJustifyH("CENTER")
+
+        frame.applyButton = CreateSolidButton(frame.body, "Reimport & Reload")
+        frame.applyButton:SetPoint("BOTTOMRIGHT", frame.body, "BOTTOM", -6, 0)
+
+        frame.dismissButton = UI:CreateFlatButton(frame.body, "Not Now")
+        frame.dismissButton:SetSize(150, 36)
+        frame.dismissButton:SetPoint("BOTTOMLEFT", frame.body, "BOTTOM", 6, 0)
+
+        State.profileUpdatePromptFrame = frame
+    end
+
+    local frame = State.profileUpdatePromptFrame
+    frame._outdatedProfiles = outdated
+    frame.copy:SetText(copyText)
+    frame.status:SetText("")
+
+    local function Dismiss()
+        MarkProfileUpdatesDismissed(frame._outdatedProfiles)
+        frame:Hide()
+    end
+
+    frame.closeButton:SetOnClick(Dismiss)
+    frame.dismissButton:SetOnClick(Dismiss)
+    frame.applyButton:SetOnClick(function()
+        local current = frame._outdatedProfiles or {}
+        frame.status:SetText("Reimporting updated profiles...")
+        UI:SetStatusColor(frame.status, true)
+        ReimportOutdatedProfiles(current, function(ok, message, shouldReload)
+            Print(message)
+            if shouldReload and ok then
+                ReloadUI()
+                return
+            end
+            frame.status:SetText(message or "Reimport finished.")
+            UI:SetStatusColor(frame.status, ok)
+            if ok then
+                frame:Hide()
+            end
+        end)
+    end)
+
+    frame:Show()
 end
 
 local function ScheduleInstalledProfilesOffer()
-    if profileOfferScheduled then return end
-    profileOfferScheduled = true
+    if State.profileOfferScheduled then return end
+    State.profileOfferScheduled = true
     C_Timer.After(4, function()
-        profileOfferScheduled = false
+        State.profileOfferScheduled = false
+        if ShouldOfferProfileUpdates() then
+            ShowProfileUpdatePrompt()
+            return
+        end
         ShowInstalledProfilesPrompt()
     end)
 end
@@ -2551,37 +2946,140 @@ local function IsDarkMode()
     return profile and profile.darkTheme
 end
 
-local function ApplyConfiguredProfileSettings()
-    local profile = GetEllesmereProfile()
+local function SetTableValue(tbl, key, value)
+    if type(tbl) ~= "table" or tbl[key] == value then return false end
+    tbl[key] = value
+    return true
+end
 
+local function SetColorTable(tbl, key, color)
+    if type(tbl) ~= "table" then return false end
+    local current = tbl[key]
+    if type(current) == "table" and current.r == color.r and current.g == color.g and current.b == color.b then
+        return false
+    end
+    tbl[key] = { r = color.r, g = color.g, b = color.b }
+    return true
+end
+
+local function ApplyClassColoredUnitSettings(settings)
     local changed = false
-    if type(profile) == "table" and YunoDB.forceDarkMode and profile.darkTheme ~= true then
-        profile.darkTheme = true
-        changed = true
+    changed = SetTableValue(settings, "healthClassColored", true) or changed
+    changed = SetTableValue(settings, "bgClassColored", false) or changed
+    changed = SetColorTable(settings, "customBgColor", CONST.DARK_BG_COLOR) or changed
+
+    local textPrefixes = { "leftText", "rightText", "centerText", "extraText", "btbLeft", "btbRight", "btbCenter" }
+    for _, prefix in ipairs(textPrefixes) do
+        changed = SetTableValue(settings, prefix .. "ClassColor", false) or changed
+        changed = SetTableValue(settings, prefix .. "ColorR", 1) or changed
+        changed = SetTableValue(settings, prefix .. "ColorG", 1) or changed
+        changed = SetTableValue(settings, prefix .. "ColorB", 1) or changed
     end
 
-    if type(profile) == "table" and YunoDB.forceOpacity then
+    return changed
+end
+
+local function ApplyDarkModeUnitSettings(settings)
+    local changed = false
+    local textSlots = {
+        { prefix = "leftText", default = "name" },
+        { prefix = "rightText", default = "both" },
+        { prefix = "centerText", default = "none" },
+        { prefix = "extraText", default = "none" },
+    }
+
+    for _, slot in ipairs(textSlots) do
+        local content = settings[slot.prefix .. "Content"] or slot.default
+        local shouldClassColor = content == "name" or content == "nametotarget"
+        changed = SetTableValue(settings, slot.prefix .. "ClassColor", shouldClassColor) or changed
+        if not shouldClassColor then
+            changed = SetTableValue(settings, slot.prefix .. "ColorR", 1) or changed
+            changed = SetTableValue(settings, slot.prefix .. "ColorG", 1) or changed
+            changed = SetTableValue(settings, slot.prefix .. "ColorB", 1) or changed
+        end
+    end
+    return changed
+end
+
+local function ApplyClassColoredRaidSettings(profile, prefix)
+    local changed = false
+    local function Key(name)
+        return prefix and (prefix .. name) or name
+    end
+
+    changed = SetTableValue(profile, Key("healthColorMode"), "class") or changed
+    changed = SetTableValue(profile, Key("bgClassColored"), false) or changed
+    changed = SetColorTable(profile, Key("customBgColor"), CONST.DARK_BG_COLOR) or changed
+    changed = SetTableValue(profile, Key("nameColorMode"), "custom") or changed
+    changed = SetColorTable(profile, Key("nameCustomColor"), { r = 1, g = 1, b = 1 }) or changed
+    changed = SetTableValue(profile, Key("healthTextColorMode"), "custom") or changed
+    changed = SetColorTable(profile, Key("healthTextCustomColor"), { r = 1, g = 1, b = 1 }) or changed
+    changed = SetTableValue(profile, Key("topNameBarTextColorMode"), "custom") or changed
+    changed = SetColorTable(profile, Key("topNameBarTextColor"), { r = 1, g = 1, b = 1 }) or changed
+
+    return changed
+end
+
+local function ApplyDarkModeRaidSettings(profile, prefix)
+    local changed = false
+    local function Key(name)
+        return prefix and (prefix .. name) or name
+    end
+
+    changed = SetTableValue(profile, Key("healthColorMode"), "dark") or changed
+    changed = SetTableValue(profile, Key("nameColorMode"), "class") or changed
+    changed = SetTableValue(profile, Key("healthTextColorMode"), "class") or changed
+    changed = SetTableValue(profile, Key("topNameBarTextColorMode"), "class") or changed
+
+    return changed
+end
+
+local function GetAppearanceMode()
+    EnsureDB()
+    if YunoDB.appearanceMode == "class" then return "class" end
+    return "dark"
+end
+
+local function ApplyConfiguredProfileSettings()
+    local profile = GetEllesmereProfile()
+    local appearanceMode = GetAppearanceMode()
+    local classColored = appearanceMode == "class"
+
+    local changed = false
+    if type(profile) == "table" then
+        local desiredDarkTheme = not classColored and YunoDB.forceDarkMode == true
+        if profile.darkTheme ~= desiredDarkTheme then
+            profile.darkTheme = desiredDarkTheme
+            changed = true
+        end
+    end
+
+    if type(profile) == "table" then
         local opacity = math.floor((YunoDB.healthBarOpacity or 85) + 0.5)
         for _, key in ipairs(DB_UNITS) do
             local settings = profile[key]
-            if type(settings) == "table" and settings.healthBarOpacity ~= opacity then
-                settings.healthBarOpacity = opacity
-                changed = true
+            if type(settings) == "table" then
+                if YunoDB.forceOpacity and settings.healthBarOpacity ~= opacity then
+                    settings.healthBarOpacity = opacity
+                    changed = true
+                end
+                if classColored then
+                    changed = ApplyClassColoredUnitSettings(settings) or changed
+                elseif YunoDB.forceDarkMode then
+                    changed = ApplyDarkModeUnitSettings(settings) or changed
+                end
             end
         end
     end
 
     local raidProfile = GetEllesmereRaidFramesProfile()
     if type(raidProfile) == "table" then
-        if YunoDB.forceDarkMode then
-            if raidProfile.healthColorMode ~= "dark" then
-                raidProfile.healthColorMode = "dark"
-                changed = true
-            end
-            if raidProfile.party_healthColorMode ~= "dark" then
-                raidProfile.party_healthColorMode = "dark"
-                changed = true
-            end
+        if classColored then
+            changed = ApplyClassColoredRaidSettings(raidProfile) or changed
+            changed = ApplyClassColoredRaidSettings(raidProfile, "party_") or changed
+        elseif YunoDB.forceDarkMode then
+            changed = ApplyDarkModeRaidSettings(raidProfile) or changed
+            changed = ApplyDarkModeRaidSettings(raidProfile, "party_") or changed
         end
 
         if YunoDB.forceOpacity then
@@ -2598,6 +3096,21 @@ local function ApplyConfiguredProfileSettings()
     end
 
     return changed
+end
+
+local function SetYunoAppearanceMode(mode)
+    EnsureDB()
+    if mode ~= "class" then mode = "dark" end
+
+    YunoDB.appearanceMode = mode
+    YunoDB.forceDarkMode = mode == "dark"
+    YunoDB.classBackground = mode == "dark"
+
+    local changed = ApplyConfiguredProfileSettings()
+    if changed then ReloadEllesmereFrames() end
+    ScheduleApply()
+
+    return mode
 end
 
 local function GetClassTint(unit, color)
@@ -2782,7 +3295,7 @@ local function RestoreDiscoveredFrames()
     end
 end
 
-local function ReloadEllesmereFrames()
+ReloadEllesmereFrames = function()
     local reloaded = false
     if type(_G._EUF_ReloadFrames) == "function" then
         _G._EUF_ReloadFrames()
@@ -2923,18 +3436,29 @@ ApplyRaidFrameHealthPatch = function(button, health, bg, unit, isParty)
     AnchorMissingHealthBackground(health)
 
     if bg then
+        bg._yunoRaidApplying = true
         if YunoDB.classBackground then
             local r, g, b = GetRaidFrameClassTint(unit)
             if r then bg:SetColorTexture(r, g, b, 1) end
         else
             RestoreRaidFrameBackground(health, isParty)
         end
+        bg._yunoRaidApplying = false
     end
+end
+
+local function HookRaidFrameBackground(button, health, bg, isParty)
+    if not hooksecurefunc or not button or not health or not bg or bg._yunoRaidBgHooked then return end
+    bg._yunoRaidBgHooked = true
+    hooksecurefunc(bg, "SetColorTexture", function(self)
+        if self._yunoRaidApplying then return end
+        ApplyRaidFrameHealthPatch(button, health, self, ResolveFrameUnit(button) or health._yunoUnit, isParty)
+    end)
 end
 
 local function FindRaidFrameHealth(button)
     if not button or not button.GetChildren then return nil end
-    if raidFrameHealthCache[button] then return raidFrameHealthCache[button] end
+    if State.raidFrameHealthCache[button] then return State.raidFrameHealthCache[button] end
 
     local best
     local bestHeight = -1
@@ -2950,19 +3474,19 @@ local function FindRaidFrameHealth(button)
         end
     end
 
-    raidFrameHealthCache[button] = best
+    State.raidFrameHealthCache[button] = best
     return best
 end
 
 local function FindRaidFrameBackground(button)
     if not button or not button.GetRegions then return nil end
-    if raidFrameBackgroundCache[button] then return raidFrameBackgroundCache[button] end
+    if State.raidFrameBackgroundCache[button] then return State.raidFrameBackgroundCache[button] end
 
     local regions = { button:GetRegions() }
     for _, region in ipairs(regions) do
         local layer = region.GetDrawLayer and region:GetDrawLayer() or nil
         if layer == "BACKGROUND" and region.SetColorTexture then
-            raidFrameBackgroundCache[button] = region
+            State.raidFrameBackgroundCache[button] = region
             return region
         end
     end
@@ -2977,17 +3501,14 @@ local function PatchRaidFrameButton(button, isParty, seenHealth)
 
     local bg = FindRaidFrameBackground(button)
     health._yunoRaidPatch = { button = button, bg = bg, isParty = isParty }
+    HookRaidFrameBackground(button, health, bg, isParty)
 
     if hooksecurefunc and not health._yunoRaidStatusColorHooked then
         health._yunoRaidStatusColorHooked = true
         hooksecurefunc(health, "SetStatusBarColor", function(self)
             local patch = self._yunoRaidPatch
-            if patch and C_Timer and not self._yunoRaidPatchPending then
-                self._yunoRaidPatchPending = true
-                C_Timer.After(0, function()
-                    self._yunoRaidPatchPending = false
-                    ApplyRaidFrameHealthPatch(patch.button, self, patch.bg, ResolveFrameUnit(patch.button) or self._yunoUnit, patch.isParty)
-                end)
+            if patch then
+                ApplyRaidFrameHealthPatch(patch.button, self, patch.bg, ResolveFrameUnit(patch.button) or self._yunoUnit, patch.isParty)
             end
         end)
     end
@@ -3068,16 +3589,17 @@ local function ApplyAll()
     patched = patched + PatchDiscoveredFrames(seenHealth)
     patched = patched + PatchEllesmereRaidFrames(seenHealth)
     ApplyFriendlyPlayerNameplatePreference()
+    ApplySoundChannelPreference()
     ApplyChatSettings()
     ApplyEllesmereActionBarPagingOverride()
     return patched
 end
 
-local function ScheduleApply(delay)
-    if pendingApply and not delay then return end
-    pendingApply = true
+ScheduleApply = function(delay)
+    if State.pendingApply and not delay then return end
+    State.pendingApply = true
     C_Timer.After(delay or 0, function()
-        pendingApply = false
+        State.pendingApply = false
         ApplyAll()
     end)
 end
@@ -3095,34 +3617,35 @@ local function ScheduleSpecApplyBurst()
 end
 
 local function ScheduleStartupRetries()
-    startupRetryVersion = startupRetryVersion + 1
-    local version = startupRetryVersion
+    State.startupRetryVersion = State.startupRetryVersion + 1
+    local version = State.startupRetryVersion
     local delays = { 0, 0.03, 0.10, 0.25, 0.50, 1.00, 2.00 }
 
     for _, delay in ipairs(delays) do
         C_Timer.After(delay, function()
-            if version ~= startupRetryVersion then return end
+            if version ~= State.startupRetryVersion then return end
             HookReload()
             ApplyEllesmereThemeSettings(true)
             if ApplyConfiguredProfileSettings() then ReloadEllesmereFrames() end
             ApplyAll()
+            UpdateSoundChannelWatcher()
         end)
     end
 end
 
 function HookReload()
-    if type(_G._EUF_ReloadFrames) == "function" and hookedReload ~= _G._EUF_ReloadFrames then
+    if type(_G._EUF_ReloadFrames) == "function" and State.hookedReload ~= _G._EUF_ReloadFrames then
         hooksecurefunc("_EUF_ReloadFrames", function()
             ScheduleApplyBurst()
         end)
-        hookedReload = _G._EUF_ReloadFrames
+        State.hookedReload = _G._EUF_ReloadFrames
     end
 
-    if type(_G._ERF_RefreshAll) == "function" and hookedRaidReload ~= _G._ERF_RefreshAll then
+    if type(_G._ERF_RefreshAll) == "function" and State.hookedRaidReload ~= _G._ERF_RefreshAll then
         hooksecurefunc("_ERF_RefreshAll", function()
             ScheduleApplyBurst()
         end)
-        hookedRaidReload = _G._ERF_RefreshAll
+        State.hookedRaidReload = _G._ERF_RefreshAll
     end
 end
 
@@ -3293,11 +3816,11 @@ end
 local function ShowInstallerFrame()
     EnsureDB()
     local UI = yuno and yuno.UI or YunoUI
-    if cooldownImportFrame and cooldownImportFrame:IsShown() then
-        cooldownImportFrame:Hide()
+    if State.cooldownImportFrame and State.cooldownImportFrame:IsShown() then
+        State.cooldownImportFrame:Hide()
     end
 
-    if not installerFrame then
+    if not State.installerFrame then
         local frame = UI:CreateWindow("YunoInstallerFrame", UIParent, 620, 500)
         frame.subtitle:SetText("installer")
         frame._installerDone = {}
@@ -3346,14 +3869,30 @@ local function ShowInstallerFrame()
                 run = ImportEditModeLayout,
             },
             {
+                title = "Cooldown Manager",
+                body = "Imports the yuno Blizzard Cooldown Manager layouts for your current class.\n\nAny existing yuno layouts are removed first so this step is repeatable.",
+                action = "Import CDM",
+                run = ImportYunoCooldownLayouts,
+            },
+            {
                 title = "EllesmereUI",
                 body = "Imports the yuno EllesmereUI profile.\n\nUnit frame runtime patches still apply normally after this step.",
                 action = "Import EllesmereUI",
                 run = ImportEllesmereUIProfile,
             },
             {
+                title = "Appearance",
+                body = "Choose how yuno should color Ellesmere unit, party, and raid frames.\n\nThis runs after EllesmereUI import so the color mode applies to the yuno profile.",
+                action = "Apply Appearance",
+                appearanceChoice = true,
+                run = function()
+                    local mode = SetYunoAppearanceMode(frame._installerAppearanceMode or GetAppearanceMode())
+                    return true, mode == "class" and "appearance set to class colored" or "appearance set to dark mode"
+                end,
+            },
+            {
                 title = "Initialize Profiles",
-                body = "Reload once now so imported Edit Mode, action bar, and Ellesmere profile data initialize before the final UI scale step.",
+                body = "Reload once now so imported Edit Mode, action bar, cooldown, and Ellesmere profile data initialize before the final UI scale step.",
                 action = "Reload UI",
                 run = function()
                     MarkInstallerPendingFinalScale()
@@ -3450,6 +3989,17 @@ local function ShowInstallerFrame()
         frame.logo:SetSize(200, 200)
         frame.logo:SetPoint("CENTER", frame.contentCanvas, "CENTER", 0, -30)
 
+        frame.appearanceChoice = CreateFrame("Frame", nil, frame.contentCanvas)
+        frame.appearanceChoice:SetSize(360, 38)
+        frame.appearanceChoice:SetPoint("TOP", frame.logo, "BOTTOM", 0, -10)
+        frame.appearanceChoice.darkButton = UI:CreateFlatButton(frame.appearanceChoice, "Dark Mode")
+        frame.appearanceChoice.darkButton:SetSize(170, 34)
+        frame.appearanceChoice.darkButton:SetPoint("LEFT", frame.appearanceChoice, "LEFT", 0, 0)
+        frame.appearanceChoice.classButton = UI:CreateFlatButton(frame.appearanceChoice, "Class Colored")
+        frame.appearanceChoice.classButton:SetSize(170, 34)
+        frame.appearanceChoice.classButton:SetPoint("RIGHT", frame.appearanceChoice, "RIGHT", 0, 0)
+        frame.appearanceChoice:Hide()
+
         frame.actionButton = CreateSolidActionButton(frame.contentCanvas, "Start")
         frame.actionButton:SetPoint("TOP", frame.logo, "BOTTOM", 0, -18)
 
@@ -3491,6 +4041,20 @@ local function ShowInstallerFrame()
 
         frame.progressBar:SetScript("OnSizeChanged", RefreshProgress)
 
+        local function SetInstallerAppearanceChoice(mode)
+            if mode ~= "class" then mode = "dark" end
+            frame._installerAppearanceMode = mode
+            frame.appearanceChoice.darkButton:SetChoiceActive(mode == "dark")
+            frame.appearanceChoice.classButton:SetChoiceActive(mode == "class")
+        end
+
+        frame.appearanceChoice.darkButton:SetOnClick(function()
+            SetInstallerAppearanceChoice("dark")
+        end)
+        frame.appearanceChoice.classButton:SetOnClick(function()
+            SetInstallerAppearanceChoice("class")
+        end)
+
         function frame:SetInstallerStatus(ok, message)
             self._installerStatusOk = ok and true or false
             self._installerStatusMessage = message
@@ -3511,6 +4075,21 @@ local function ShowInstallerFrame()
             frame.progressText:SetText(tostring(index) .. " / " .. tostring(total))
             frame._installerProgressRatio = total > 0 and index / total or 0
             RefreshProgress()
+
+            frame.actionButton:ClearAllPoints()
+            frame.logo:ClearAllPoints()
+            if step.appearanceChoice then
+                frame.logo:SetSize(132, 132)
+                frame.logo:SetPoint("CENTER", frame.contentCanvas, "CENTER", 0, -4)
+                frame.appearanceChoice:Show()
+                SetInstallerAppearanceChoice(frame._installerAppearanceMode or GetAppearanceMode())
+                frame.actionButton:SetPoint("TOP", frame.appearanceChoice, "BOTTOM", 0, -10)
+            else
+                frame.logo:SetSize(200, 200)
+                frame.logo:SetPoint("CENTER", frame.contentCanvas, "CENTER", 0, -30)
+                frame.appearanceChoice:Hide()
+                frame.actionButton:SetPoint("TOP", frame.logo, "BOTTOM", 0, -18)
+            end
 
             frame.backButton:SetEnabledState(index > 1)
             frame.backButton:SetOnClick(function()
@@ -3543,16 +4122,16 @@ local function ShowInstallerFrame()
 
         frame.installerStatusPage = frame
         frame.RenderInstaller = RenderInstaller
-        installerFrame = frame
+        State.installerFrame = frame
     end
 
-    if YunoDB.installerPendingFinalScale and installerFrame._installerStepCount then
-        installerFrame._installerStepIndex = installerFrame._installerStepCount
-    elseif not installerFrame._installerStepIndex then
-        installerFrame._installerStepIndex = 1
+    if YunoDB.installerPendingFinalScale and State.installerFrame._installerStepCount then
+        State.installerFrame._installerStepIndex = State.installerFrame._installerStepCount
+    elseif not State.installerFrame._installerStepIndex then
+        State.installerFrame._installerStepIndex = 1
     end
-    installerFrame.RenderInstaller()
-    installerFrame:Show()
+    State.installerFrame.RenderInstaller()
+    State.installerFrame:Show()
 end
 
 local function ShowCooldownImportFrame(initialTab)
@@ -3569,7 +4148,7 @@ local function ShowCooldownImportFrame(initialTab)
         return page or "welcome"
     end
 
-    if not cooldownImportFrame then
+    if not State.cooldownImportFrame then
         local frame = UI:CreateWindow("YunoCooldownImportFrame", UIParent, 820, 560)
         frame._sidebarButtons = {}
         frame._installerDone = {}
@@ -3672,14 +4251,37 @@ local function ShowCooldownImportFrame(initialTab)
                     Print("disabled")
                 end
             end)
-            automation:AddToggle("Enforce EllesmereUI dark mode", YunoDB.forceDarkMode == true, function(_, checked)
-                YunoDB.forceDarkMode = checked
-                if ApplyConfiguredProfileSettings() then ReloadEllesmereFrames() end
-                ScheduleApply()
-                local message = checked and "dark mode enforcement enabled" or "dark mode enforcement disabled"
-                page:SetMuted(message)
-                Print(message)
-            end)
+            local darkButton
+            local classButton
+            local function SetAppearanceButtons(mode)
+                if darkButton then darkButton:SetChoiceActive(mode == "dark") end
+                if classButton then classButton:SetChoiceActive(mode == "class") end
+            end
+            local appearanceRow = automation:AddButtonRow({
+                {
+                    label = "Dark Mode",
+                    width = 170,
+                    onClick = function()
+                        local mode = SetYunoAppearanceMode("dark")
+                        SetAppearanceButtons(mode)
+                        page:SetMuted("appearance set to dark mode")
+                        Print("appearance set to dark mode")
+                    end,
+                },
+                {
+                    label = "Class Colored",
+                    width = 170,
+                    onClick = function()
+                        local mode = SetYunoAppearanceMode("class")
+                        SetAppearanceButtons(mode)
+                        page:SetMuted("appearance set to class colored")
+                        Print("appearance set to class colored")
+                    end,
+                },
+            }, "right")
+            darkButton = appearanceRow.buttons and appearanceRow.buttons[1]
+            classButton = appearanceRow.buttons and appearanceRow.buttons[2]
+            SetAppearanceButtons(GetAppearanceMode())
             automation:AddToggle("Sync EllesmereUI colors to yuno blue", YunoDB.forceEUITheme == true, function(_, checked)
                 YunoDB.forceEUITheme = checked
                 local message
@@ -3743,6 +4345,36 @@ local function ShowCooldownImportFrame(initialTab)
                         local applied, skipped = ApplyCVarTable(BASE_CVARS)
                         local message = "set CVars: " .. applied .. " applied"
                         if skipped > 0 then message = message .. ", " .. skipped .. " skipped" end
+                        page:SetMuted(message)
+                        Print(message)
+                    end,
+                },
+            }, "right")
+
+            local audio = page:AddSection("AUDIO")
+            local channelRow = audio:AddInfoRow("Sound channels", tostring(GetYunoCVar(CONST.soundChannelsCVar) or "unknown"))
+            audio:AddToggle("Force sound channels to 70", YunoDB.forceSoundChannels == true, function(_, checked)
+                YunoDB.forceSoundChannels = checked
+                UpdateSoundChannelWatcher()
+                if channelRow and channelRow.value then
+                    channelRow.value:SetText(tostring(GetYunoCVar(CONST.soundChannelsCVar) or "unknown"))
+                end
+                local message = checked and "sound channels forced to 70" or "sound channel override disabled"
+                page:SetMuted(message)
+                Print(message)
+            end)
+            audio:AddButtonRow({
+                {
+                    label = "Set 70 Now",
+                    width = 170,
+                    variant = "primary",
+                    onClick = function()
+                        local wasSet = tostring(GetYunoCVar(CONST.soundChannelsCVar)) == CONST.soundChannelsValue
+                        local ok = wasSet or SetYunoCVar(CONST.soundChannelsCVar, CONST.soundChannelsValue)
+                        if channelRow and channelRow.value then
+                            channelRow.value:SetText(tostring(GetYunoCVar(CONST.soundChannelsCVar) or "unknown"))
+                        end
+                        local message = wasSet and "sound channels already set to 70" or (ok and "sound channels set to 70" or "sound channels could not be set")
                         page:SetMuted(message)
                         Print(message)
                     end,
@@ -4087,39 +4719,39 @@ local function ShowCooldownImportFrame(initialTab)
         end
 
         frame.RebuildSidebarTextLayer()
-        cooldownImportFrame = frame
+        State.cooldownImportFrame = frame
     end
-    local selectedPage = NormalizePage(initialTab or cooldownImportFrame._selectedPage or "welcome")
-    cooldownImportFrame.SelectPage(selectedPage)
-    cooldownImportFrame:Show()
+    local selectedPage = NormalizePage(initialTab or State.cooldownImportFrame._selectedPage or "welcome")
+    State.cooldownImportFrame.SelectPage(selectedPage)
+    State.cooldownImportFrame:Show()
     C_Timer.After(0, function()
-        if cooldownImportFrame and cooldownImportFrame:IsShown() then
-            if cooldownImportFrame.RebuildSidebarTextLayer then
-                cooldownImportFrame.RebuildSidebarTextLayer()
+        if State.cooldownImportFrame and State.cooldownImportFrame:IsShown() then
+            if State.cooldownImportFrame.RebuildSidebarTextLayer then
+                State.cooldownImportFrame.RebuildSidebarTextLayer()
             end
-            cooldownImportFrame.SelectPage(cooldownImportFrame._selectedPage or selectedPage, true)
+            State.cooldownImportFrame.SelectPage(State.cooldownImportFrame._selectedPage or selectedPage, true)
         end
     end)
     C_Timer.After(0.30, function()
-        if cooldownImportFrame and cooldownImportFrame:IsShown() then
-            if cooldownImportFrame.RebuildSidebarTextLayer then
-                cooldownImportFrame.RebuildSidebarTextLayer()
+        if State.cooldownImportFrame and State.cooldownImportFrame:IsShown() then
+            if State.cooldownImportFrame.RebuildSidebarTextLayer then
+                State.cooldownImportFrame.RebuildSidebarTextLayer()
             end
-            cooldownImportFrame.SelectPage(cooldownImportFrame._selectedPage or selectedPage, true)
+            State.cooldownImportFrame.SelectPage(State.cooldownImportFrame._selectedPage or selectedPage, true)
         end
     end)
 end
 
 local function ShouldOpenFreshInstaller()
     EnsureDB()
-    return YunoDB.installerPendingFinalScale == true or YunoDB.installerCompletedVersion ~= PROFILE_PROMPT_VERSION
+    return YunoDB.installerPendingFinalScale == true or YunoDB.installerCompletedVersion ~= CONST.profilePromptVersion
 end
 
 local function ScheduleFreshInstallerOpen()
-    if freshInstallerOpenScheduled then return end
-    freshInstallerOpenScheduled = true
+    if State.freshInstallerOpenScheduled then return end
+    State.freshInstallerOpenScheduled = true
     C_Timer.After(2, function()
-        freshInstallerOpenScheduled = false
+        State.freshInstallerOpenScheduled = false
         if InCombatLockdown and InCombatLockdown() then return end
         if ShouldOpenFreshInstaller() then
             ShowInstallerFrame()
@@ -4180,17 +4812,20 @@ end
 
 local function ShowHelp()
     Print("enabled=" .. tostring(YunoDB.enabled) ..
+        ", appearance=" .. GetAppearanceMode() ..
         ", bg=" .. tostring(YunoDB.classBackground) ..
         ", dark=" .. tostring(YunoDB.forceDarkMode) ..
         ", euiTheme=" .. tostring(YunoDB.forceEUITheme) ..
         ", friendlyNameplatesOff=" .. tostring(YunoDB.disableFriendlyPlayerNameplates) ..
+        ", soundChannels=" .. tostring(GetYunoCVar(CONST.soundChannelsCVar) or "unknown") ..
+        ", soundChannelsForced=" .. tostring(YunoDB.forceSoundChannels) ..
         ", idleFade=" .. tostring(YunoDB.fadeIdlePlayerAndCooldowns) ..
         ", formPaging=" .. (YunoDB.disableEllesmereActionBarPaging and "off" or "on") ..
         ", chatButtons=" .. (YunoDB.forceChatSidebarRight and "right" or "left") ..
         ", opacity=" .. tostring(YunoDB.healthBarOpacity or 85) .. "%" ..
         ", tint=" .. math.floor((YunoDB.tint or 0.75) * 100 + 0.5) .. "%")
     Print("/yuno opens settings, /yuno help shows this list")
-    Print("/yuno on|off, /yuno bg on|off, /yuno dark on|off, /yuno theme on|off, /yuno idlefade on|off, /yuno movement on|off|unlock|lock, /yuno paging on|off, /yuno chat right|left, /yuno cdm import, /yuno install ellesmere|bigwigs|editmode|blinkii|exboss|settings, /yuno profiles, /yuno cvars, /yuno fct on|off, /yuno fps, /yuno graphics yuno, /yuno tint 75, /yuno opacity 85, /yuno dmpos, /yuno media, /yuno apply")
+    Print("/yuno on|off, /yuno appearance dark|class, /yuno bg on|off, /yuno dark on|off, /yuno theme on|off, /yuno idlefade on|off, /yuno soundchannels on|off|70, /yuno movement on|off|unlock|lock, /yuno paging on|off, /yuno chat right|left, /yuno cdm import, /yuno install ellesmere|bigwigs|editmode|blinkii|exboss|settings, /yuno profiles, /yuno cvars, /yuno fct on|off, /yuno fps, /yuno graphics yuno, /yuno tint 75, /yuno opacity 85, /yuno dmpos, /yuno media, /yuno apply")
 end
 
 SLASH_YUNO1 = "/yuno"
@@ -4225,19 +4860,28 @@ SlashCmdList.YUNO = function(msg)
             return
         end
         ScheduleApply()
+    elseif cmd == "appearance" or cmd == "mode" then
+        if arg == "dark" or arg == "darkmode" then
+            SetYunoAppearanceMode("dark")
+            Print("appearance set to dark mode")
+        elseif arg == "class" or arg == "classcolored" or arg == "class-coloured" or arg == "class-colored" then
+            SetYunoAppearanceMode("class")
+            Print("appearance set to class colored")
+        else
+            Print("usage: /yuno appearance dark|class")
+            return
+        end
     elseif cmd == "dark" then
         if arg == "on" or arg == "1" or arg == "true" then
-            YunoDB.forceDarkMode = true
-            Print("dark mode enforcement enabled")
+            SetYunoAppearanceMode("dark")
+            Print("appearance set to dark mode")
         elseif arg == "off" or arg == "0" or arg == "false" then
-            YunoDB.forceDarkMode = false
-            Print("dark mode enforcement disabled")
+            SetYunoAppearanceMode("class")
+            Print("appearance set to class colored")
         else
             Print("usage: /yuno dark on|off")
             return
         end
-        if ApplyConfiguredProfileSettings() then ReloadEllesmereFrames() end
-        ScheduleApply()
     elseif cmd == "theme" then
         if arg == "on" or arg == "1" or arg == "true" then
             YunoDB.forceEUITheme = true
@@ -4262,6 +4906,29 @@ SlashCmdList.YUNO = function(msg)
             Print("idle fade disabled")
         else
             Print("usage: /yuno idlefade on|off")
+            return
+        end
+    elseif cmd == "soundchannels" or cmd == "audiochannels" or cmd == "sound" or cmd == "audio" then
+        if arg == "on" or arg == "1" or arg == "true" or arg == "enable" or arg == "70" then
+            YunoDB.forceSoundChannels = true
+            UpdateSoundChannelWatcher()
+            Print("sound channels forced to 70")
+        elseif arg == "off" or arg == "0" or arg == "false" or arg == "disable" then
+            YunoDB.forceSoundChannels = false
+            UpdateSoundChannelWatcher()
+            Print("sound channel override disabled")
+        elseif arg == "set" or arg == "apply" or arg == "now" then
+            local wasSet = tostring(GetYunoCVar(CONST.soundChannelsCVar)) == CONST.soundChannelsValue
+            local ok = wasSet or SetYunoCVar(CONST.soundChannelsCVar, CONST.soundChannelsValue)
+            if wasSet then
+                Print("sound channels already set to 70")
+            elseif ok then
+                Print("sound channels set to 70")
+            else
+                Print("sound channels could not be set")
+            end
+        else
+            Print("usage: /yuno soundchannels on|off|70")
             return
         end
     elseif cmd == "paging" or cmd == "actionbarpaging" or cmd == "barpaging" then
@@ -4451,6 +5118,8 @@ eventFrame:RegisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
 eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+pcall(eventFrame.RegisterEvent, eventFrame, "CVAR_UPDATE")
+pcall(eventFrame.RegisterEvent, eventFrame, "PLAYER_DIFFICULTY_CHANGED")
 pcall(eventFrame.RegisterEvent, eventFrame, "PLAYER_SPECIALIZATION_CHANGED")
 pcall(eventFrame.RegisterEvent, eventFrame, "ACTIVE_TALENT_GROUP_CHANGED")
 pcall(eventFrame.RegisterEvent, eventFrame, "TRAIT_CONFIG_UPDATED")
@@ -4459,10 +5128,19 @@ eventFrame:SetScript("OnEvent", function(_, event, addonName)
         return
     end
 
-    if not fontsRegistered or not statusbarsRegistered then RegisterMedia() end
+    if event == "CVAR_UPDATE" then
+        if addonName == CONST.soundChannelsCVar then
+            ScheduleSoundChannelPreference(0)
+        end
+        return
+    end
+
+    if not State.fontsRegistered or not State.statusbarsRegistered then RegisterMedia() end
     EnsureDB()
     HookFriendlyPlayerNameplateCVars()
+    HookSoundChannelCVar()
     HookReload()
+    UpdateSoundChannelWatcher()
     local forceThemeLive = event == "ADDON_LOADED" or event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD"
     ApplyEllesmereThemeSettings(forceThemeLive)
     if ApplyConfiguredProfileSettings() then ReloadEllesmereFrames() end
@@ -4487,7 +5165,9 @@ C_Timer.After(0, function()
     RegisterMedia()
     EnsureDB()
     HookFriendlyPlayerNameplateCVars()
+    HookSoundChannelCVar()
     HookReload()
+    UpdateSoundChannelWatcher()
     ApplyEllesmereThemeSettings(true)
     ApplyConfiguredProfileSettings()
     ApplyAll()
@@ -4499,7 +5179,9 @@ C_Timer.After(1, function()
     RegisterMedia()
     EnsureDB()
     HookFriendlyPlayerNameplateCVars()
+    HookSoundChannelCVar()
     HookReload()
+    UpdateSoundChannelWatcher()
     ApplyEllesmereThemeSettings(true)
     if ApplyConfiguredProfileSettings() then ReloadEllesmereFrames() end
     ApplyAll()
