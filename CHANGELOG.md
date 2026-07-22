@@ -1,3 +1,10 @@
+## yuno 4.0
+
+- Removed the sound channel override and its related settings and commands.
+- Updated the bundled EllesmereUI profile.
+- Updated the bundled Cooldown Manager profiles.
+- Please *fully* reinstall yunoUI to make sure everything is applied correctly.
+
 ## yuno 3.10
 
 - Fixed party and raid health background flicker while units take damage.

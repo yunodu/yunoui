@@ -44,9 +44,6 @@ local CONST = {
     UI_SCALE = 0.5333333333,
     idleFadeAlpha = 0.07,
     idleFadeInterval = 0.35,
-    soundChannelsCVar = "Sound_NumChannels",
-    soundChannelsValue = "70",
-    soundChannelsCheckInterval = 300,
     profilePromptVersion = 1,
 }
 local COOLDOWN_VIEWER_FRAME_NAMES = {
@@ -75,8 +72,6 @@ local State = {
     fontsRegistered = false,
     statusbarsRegistered = false,
     friendlyNameplateCVarHooked = false,
-    soundChannelsCVarHooked = false,
-    soundChannelsTicker = nil,
     actionBarPagingDeferFrame = nil,
     actionBarPagingOverrideApplied = false,
     actionBarPagingBindOwner = nil,
@@ -642,7 +637,6 @@ EnsureDB = function()
     if YunoDB.forceOpacity == nil then YunoDB.forceOpacity = true end
     if YunoDB.forceChatSidebarRight == nil then YunoDB.forceChatSidebarRight = true end
     if YunoDB.disableFriendlyPlayerNameplates == nil then YunoDB.disableFriendlyPlayerNameplates = true end
-    if YunoDB.forceSoundChannels == nil then YunoDB.forceSoundChannels = true end
     if YunoDB.fadeIdlePlayerAndCooldowns == nil then YunoDB.fadeIdlePlayerAndCooldowns = false end
     if YunoDB.disableEllesmereActionBarPaging == nil then YunoDB.disableEllesmereActionBarPaging = false end
     if type(YunoDB.healthBarOpacity) ~= "number" then YunoDB.healthBarOpacity = 85 end
@@ -1237,51 +1231,6 @@ local function HookFriendlyPlayerNameplateCVars()
     if SetCVar then pcall(hooksecurefunc, "SetCVar", WatchFriendlyNameplateCVar) end
     if C_CVar and C_CVar.SetCVar then pcall(hooksecurefunc, C_CVar, "SetCVar", WatchFriendlyNameplateCVar) end
     State.friendlyNameplateCVarHooked = true
-end
-
-local function ApplySoundChannelPreference()
-    EnsureDB()
-    if YunoDB.forceSoundChannels ~= true then return false end
-    if tostring(GetYunoCVar(CONST.soundChannelsCVar)) == CONST.soundChannelsValue then return false end
-
-    return SetYunoCVar(CONST.soundChannelsCVar, CONST.soundChannelsValue)
-end
-
-local function ScheduleSoundChannelPreference(delay)
-    C_Timer.After(delay or 0, function()
-        ApplySoundChannelPreference()
-    end)
-end
-
-local function HookSoundChannelCVar()
-    if State.soundChannelsCVarHooked or not hooksecurefunc then return end
-
-    local function WatchSoundChannelCVar(name, value)
-        if type(YunoDB) ~= "table" or YunoDB.forceSoundChannels ~= true then return end
-        if name ~= CONST.soundChannelsCVar then return end
-        if tostring(value) == CONST.soundChannelsValue then return end
-        ScheduleSoundChannelPreference(0)
-    end
-
-    if SetCVar then pcall(hooksecurefunc, "SetCVar", WatchSoundChannelCVar) end
-    if C_CVar and C_CVar.SetCVar then pcall(hooksecurefunc, C_CVar, "SetCVar", WatchSoundChannelCVar) end
-    State.soundChannelsCVarHooked = true
-end
-
-local function UpdateSoundChannelWatcher()
-    EnsureDB()
-
-    if YunoDB.forceSoundChannels == true then
-        if not State.soundChannelsTicker and C_Timer and C_Timer.NewTicker then
-            State.soundChannelsTicker = C_Timer.NewTicker(CONST.soundChannelsCheckInterval, function()
-                ApplySoundChannelPreference()
-            end)
-        end
-        ApplySoundChannelPreference()
-    elseif State.soundChannelsTicker then
-        State.soundChannelsTicker:Cancel()
-        State.soundChannelsTicker = nil
-    end
 end
 
 local function RestoreIdleFadeFrames()
@@ -2277,6 +2226,54 @@ local function EllesmereProfileExists(profileName)
         and type(EllesmereUIDB.profiles[profileName]) == "table"
 end
 
+local function GetActiveEllesmereProfile()
+    if EllesmereUI and type(EllesmereUI.GetActiveProfileName) == "function" then
+        local ok, profileName = pcall(EllesmereUI.GetActiveProfileName)
+        if ok and type(profileName) == "string" and profileName ~= "" then
+            return profileName
+        end
+    end
+
+    if type(EllesmereUIDB) == "table" and type(EllesmereUIDB.activeProfile) == "string" then
+        return EllesmereUIDB.activeProfile
+    end
+
+    return nil
+end
+
+local function GetCurrentEllesmereSpecProfile()
+    if type(EllesmereUIDB) ~= "table" then return nil end
+
+    local characterKey = GetYunoCharacterKey()
+    local specID = type(EllesmereUIDB.lastSpecByChar) == "table"
+        and EllesmereUIDB.lastSpecByChar[characterKey]
+        or nil
+
+    if not specID and GetSpecialization and GetSpecializationInfo then
+        local specIndex = GetSpecialization()
+        if specIndex and specIndex > 0 then
+            specID = GetSpecializationInfo(specIndex)
+        end
+    end
+
+    if not specID then return nil end
+
+    if EllesmereUI and type(EllesmereUI.GetSpecProfile) == "function" then
+        local ok, profileName = pcall(EllesmereUI.GetSpecProfile, specID)
+        if ok and type(profileName) == "string" and profileName ~= "" then
+            return profileName
+        end
+    end
+
+    local specProfiles = EllesmereUIDB.specProfiles
+    local profileName = type(specProfiles) == "table" and specProfiles[specID] or nil
+    if type(profileName) == "string" and profileName ~= "" then
+        return profileName
+    end
+
+    return nil
+end
+
 local function HasInstalledYunoProfiles()
     TryLoadAddon("EllesmereUI")
     TryLoadAddon("BigWigs")
@@ -2295,6 +2292,17 @@ local function ApplyExistingEllesmereProfile(applied, missing, failed)
 
     if not EllesmereProfileExists("yuno") then
         missing[#missing + 1] = "EllesmereUI"
+        return
+    end
+
+    if GetActiveEllesmereProfile() == "yuno" then
+        applied[#applied + 1] = "EllesmereUI (already active)"
+        return
+    end
+
+    local specProfile = GetCurrentEllesmereSpecProfile()
+    if specProfile and specProfile ~= "yuno" and EllesmereProfileExists(specProfile) then
+        applied[#applied + 1] = "EllesmereUI (kept " .. specProfile .. " for current spec)"
         return
     end
 
@@ -2484,7 +2492,7 @@ local function ApplyInstalledProfilesToCharacter(markApplied)
 
     local message
     if #applied > 0 then
-        message = "loaded yuno profiles for this character: " .. table.concat(applied, ", ")
+        message = "yuno profiles ready for this character: " .. table.concat(applied, ", ")
     else
         message = "no installed yuno profiles were found for this character"
     end
@@ -3589,7 +3597,6 @@ local function ApplyAll()
     patched = patched + PatchDiscoveredFrames(seenHealth)
     patched = patched + PatchEllesmereRaidFrames(seenHealth)
     ApplyFriendlyPlayerNameplatePreference()
-    ApplySoundChannelPreference()
     ApplyChatSettings()
     ApplyEllesmereActionBarPagingOverride()
     return patched
@@ -3628,7 +3635,6 @@ local function ScheduleStartupRetries()
             ApplyEllesmereThemeSettings(true)
             if ApplyConfiguredProfileSettings() then ReloadEllesmereFrames() end
             ApplyAll()
-            UpdateSoundChannelWatcher()
         end)
     end
 end
@@ -4351,36 +4357,6 @@ local function ShowCooldownImportFrame(initialTab)
                 },
             }, "right")
 
-            local audio = page:AddSection("AUDIO")
-            local channelRow = audio:AddInfoRow("Sound channels", tostring(GetYunoCVar(CONST.soundChannelsCVar) or "unknown"))
-            audio:AddToggle("Force sound channels to 70", YunoDB.forceSoundChannels == true, function(_, checked)
-                YunoDB.forceSoundChannels = checked
-                UpdateSoundChannelWatcher()
-                if channelRow and channelRow.value then
-                    channelRow.value:SetText(tostring(GetYunoCVar(CONST.soundChannelsCVar) or "unknown"))
-                end
-                local message = checked and "sound channels forced to 70" or "sound channel override disabled"
-                page:SetMuted(message)
-                Print(message)
-            end)
-            audio:AddButtonRow({
-                {
-                    label = "Set 70 Now",
-                    width = 170,
-                    variant = "primary",
-                    onClick = function()
-                        local wasSet = tostring(GetYunoCVar(CONST.soundChannelsCVar)) == CONST.soundChannelsValue
-                        local ok = wasSet or SetYunoCVar(CONST.soundChannelsCVar, CONST.soundChannelsValue)
-                        if channelRow and channelRow.value then
-                            channelRow.value:SetText(tostring(GetYunoCVar(CONST.soundChannelsCVar) or "unknown"))
-                        end
-                        local message = wasSet and "sound channels already set to 70" or (ok and "sound channels set to 70" or "sound channels could not be set")
-                        page:SetMuted(message)
-                        Print(message)
-                    end,
-                },
-            }, "right")
-
             local combatText = page:AddSection("FLOATING COMBAT TEXT")
             local disableButton
             local enableButton
@@ -4817,15 +4793,13 @@ local function ShowHelp()
         ", dark=" .. tostring(YunoDB.forceDarkMode) ..
         ", euiTheme=" .. tostring(YunoDB.forceEUITheme) ..
         ", friendlyNameplatesOff=" .. tostring(YunoDB.disableFriendlyPlayerNameplates) ..
-        ", soundChannels=" .. tostring(GetYunoCVar(CONST.soundChannelsCVar) or "unknown") ..
-        ", soundChannelsForced=" .. tostring(YunoDB.forceSoundChannels) ..
         ", idleFade=" .. tostring(YunoDB.fadeIdlePlayerAndCooldowns) ..
         ", formPaging=" .. (YunoDB.disableEllesmereActionBarPaging and "off" or "on") ..
         ", chatButtons=" .. (YunoDB.forceChatSidebarRight and "right" or "left") ..
         ", opacity=" .. tostring(YunoDB.healthBarOpacity or 85) .. "%" ..
         ", tint=" .. math.floor((YunoDB.tint or 0.75) * 100 + 0.5) .. "%")
     Print("/yuno opens settings, /yuno help shows this list")
-    Print("/yuno on|off, /yuno appearance dark|class, /yuno bg on|off, /yuno dark on|off, /yuno theme on|off, /yuno idlefade on|off, /yuno soundchannels on|off|70, /yuno movement on|off|unlock|lock, /yuno paging on|off, /yuno chat right|left, /yuno cdm import, /yuno install ellesmere|bigwigs|editmode|blinkii|exboss|settings, /yuno profiles, /yuno cvars, /yuno fct on|off, /yuno fps, /yuno graphics yuno, /yuno tint 75, /yuno opacity 85, /yuno dmpos, /yuno media, /yuno apply")
+    Print("/yuno on|off, /yuno appearance dark|class, /yuno bg on|off, /yuno dark on|off, /yuno theme on|off, /yuno idlefade on|off, /yuno movement on|off|unlock|lock, /yuno paging on|off, /yuno chat right|left, /yuno cdm import, /yuno install ellesmere|bigwigs|editmode|blinkii|exboss|settings, /yuno profiles, /yuno cvars, /yuno fct on|off, /yuno fps, /yuno graphics yuno, /yuno tint 75, /yuno opacity 85, /yuno dmpos, /yuno media, /yuno apply")
 end
 
 SLASH_YUNO1 = "/yuno"
@@ -4906,29 +4880,6 @@ SlashCmdList.YUNO = function(msg)
             Print("idle fade disabled")
         else
             Print("usage: /yuno idlefade on|off")
-            return
-        end
-    elseif cmd == "soundchannels" or cmd == "audiochannels" or cmd == "sound" or cmd == "audio" then
-        if arg == "on" or arg == "1" or arg == "true" or arg == "enable" or arg == "70" then
-            YunoDB.forceSoundChannels = true
-            UpdateSoundChannelWatcher()
-            Print("sound channels forced to 70")
-        elseif arg == "off" or arg == "0" or arg == "false" or arg == "disable" then
-            YunoDB.forceSoundChannels = false
-            UpdateSoundChannelWatcher()
-            Print("sound channel override disabled")
-        elseif arg == "set" or arg == "apply" or arg == "now" then
-            local wasSet = tostring(GetYunoCVar(CONST.soundChannelsCVar)) == CONST.soundChannelsValue
-            local ok = wasSet or SetYunoCVar(CONST.soundChannelsCVar, CONST.soundChannelsValue)
-            if wasSet then
-                Print("sound channels already set to 70")
-            elseif ok then
-                Print("sound channels set to 70")
-            else
-                Print("sound channels could not be set")
-            end
-        else
-            Print("usage: /yuno soundchannels on|off|70")
             return
         end
     elseif cmd == "paging" or cmd == "actionbarpaging" or cmd == "barpaging" then
@@ -5118,7 +5069,6 @@ eventFrame:RegisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
 eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
-pcall(eventFrame.RegisterEvent, eventFrame, "CVAR_UPDATE")
 pcall(eventFrame.RegisterEvent, eventFrame, "PLAYER_DIFFICULTY_CHANGED")
 pcall(eventFrame.RegisterEvent, eventFrame, "PLAYER_SPECIALIZATION_CHANGED")
 pcall(eventFrame.RegisterEvent, eventFrame, "ACTIVE_TALENT_GROUP_CHANGED")
@@ -5128,19 +5078,10 @@ eventFrame:SetScript("OnEvent", function(_, event, addonName)
         return
     end
 
-    if event == "CVAR_UPDATE" then
-        if addonName == CONST.soundChannelsCVar then
-            ScheduleSoundChannelPreference(0)
-        end
-        return
-    end
-
     if not State.fontsRegistered or not State.statusbarsRegistered then RegisterMedia() end
     EnsureDB()
     HookFriendlyPlayerNameplateCVars()
-    HookSoundChannelCVar()
     HookReload()
-    UpdateSoundChannelWatcher()
     local forceThemeLive = event == "ADDON_LOADED" or event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD"
     ApplyEllesmereThemeSettings(forceThemeLive)
     if ApplyConfiguredProfileSettings() then ReloadEllesmereFrames() end
@@ -5165,9 +5106,7 @@ C_Timer.After(0, function()
     RegisterMedia()
     EnsureDB()
     HookFriendlyPlayerNameplateCVars()
-    HookSoundChannelCVar()
     HookReload()
-    UpdateSoundChannelWatcher()
     ApplyEllesmereThemeSettings(true)
     ApplyConfiguredProfileSettings()
     ApplyAll()
@@ -5179,9 +5118,7 @@ C_Timer.After(1, function()
     RegisterMedia()
     EnsureDB()
     HookFriendlyPlayerNameplateCVars()
-    HookSoundChannelCVar()
     HookReload()
-    UpdateSoundChannelWatcher()
     ApplyEllesmereThemeSettings(true)
     if ApplyConfiguredProfileSettings() then ReloadEllesmereFrames() end
     ApplyAll()
