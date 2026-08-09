@@ -34,6 +34,104 @@ local FONT_MEDIA = {
 }
 local STATUSBAR_MEDIA = {
     { name = "Skyline Compact", path = "Interface\\AddOns\\yuno\\media\\bar_skyline_compact.png" },
+    { name = "Bar Grad", path = "Interface\\AddOns\\yuno\\media\\bar_grad.tga" },
+}
+-- Display names match Naowh's labels, tagged as yuno for WeakAuras / SharedMedia pickers.
+local SOUND_MEDIA = {
+    { name = "|cfff47c9b+Damage - yuno|r", file = "+Damage.ogg" },
+    { name = "|cfff47c9b1 - yuno|r", file = "1.ogg" },
+    { name = "|cfff47c9b2 - yuno|r", file = "2.ogg" },
+    { name = "|cfff47c9b3 - yuno|r", file = "3.ogg" },
+    { name = "|cfff47c9b4 - yuno|r", file = "4.ogg" },
+    { name = "|cfff47c9b5 - yuno|r", file = "5.ogg" },
+    { name = "|cfff47c9b6 - yuno|r", file = "6.ogg" },
+    { name = "|cfff47c9b7 - yuno|r", file = "7.ogg" },
+    { name = "|cfff47c9b8 - yuno|r", file = "8.ogg" },
+    { name = "|cfff47c9b9 - yuno|r", file = "9.ogg" },
+    { name = "|cfff47c9b10 - yuno|r", file = "10.ogg" },
+    { name = "|cfff47c9bAbsorb - yuno|r", file = "Absorb.ogg" },
+    { name = "|cfff47c9bAdd - yuno|r", file = "Add.ogg" },
+    { name = "|cfff47c9bAdds - yuno|r", file = "Adds.ogg" },
+    { name = "|cfff47c9bAoE - yuno|r", file = "AoE.ogg" },
+    { name = "|cfff47c9bApex - yuno|r", file = "Apex.ogg" },
+    { name = "|cfff47c9bArrow - yuno|r", file = "Arrow.ogg" },
+    { name = "|cfff47c9bAvoid - yuno|r", file = "Avoid.ogg" },
+    { name = "|cfff47c9bBait - yuno|r", file = "Bait.ogg" },
+    { name = "|cfff47c9bBeam - yuno|r", file = "Beam.ogg" },
+    { name = "|cfff47c9bBehind - yuno|r", file = "Behind.ogg" },
+    { name = "|cfff47c9bBloodlust - yuno|r", file = "Bloodlust.ogg" },
+    { name = "|cfff47c9bBomb - yuno|r", file = "Bomb.ogg" },
+    { name = "|cfff47c9bBreath - yuno|r", file = "Breath.ogg" },
+    { name = "|cfff47c9bBuff - yuno|r", file = "Buff.ogg" },
+    { name = "|cfff47c9bCC - yuno|r", file = "CC.ogg" },
+    { name = "|cfff47c9bCharge - yuno|r", file = "Charge.ogg" },
+    { name = "|cfff47c9bClear In - yuno|r", file = "ClearIn.ogg" },
+    { name = "|cfff47c9bClear - yuno|r", file = "Clear.ogg" },
+    { name = "|cfff47c9bCollect - yuno|r", file = "Collect.ogg" },
+    { name = "|cfff47c9bCombat - yuno|r", file = "Combat.ogg" },
+    { name = "|cfff47c9bDance - yuno|r", file = "Dance.ogg" },
+    { name = "|cfff47c9bDebuff - yuno|r", file = "Debuff.ogg" },
+    { name = "|cfff47c9bDestroy - yuno|r", file = "Destroy.ogg" },
+    { name = "|cfff47c9bDispell - yuno|r", file = "Dispell.ogg" },
+    { name = "|cfff47c9bDodge Inc - yuno|r", file = "DodgeInc.ogg" },
+    { name = "|cfff47c9bDodge - yuno|r", file = "Dodge.ogg" },
+    { name = "|cfff47c9bDot - yuno|r", file = "Dot.ogg" },
+    { name = "|cfff47c9bExternal - yuno|r", file = "External.ogg" },
+    { name = "|cfff47c9bFixate - yuno|r", file = "Fixate.ogg" },
+    { name = "|cfff47c9bFreedom - yuno|r", file = "Freedom.ogg" },
+    { name = "|cfff47c9bFrontal - yuno|r", file = "Frontal.ogg" },
+    { name = "|cfff47c9bGreen - yuno|r", file = "Green.ogg" },
+    { name = "|cfff47c9bHide - yuno|r", file = "Hide.ogg" },
+    { name = "|cfff47c9bHigh Stacks - yuno|r", file = "HighStacks.ogg" },
+    { name = "|cfff47c9bImmune - yuno|r", file = "Immune.ogg" },
+    { name = "|cfff47c9bIn - yuno|r", file = "In.ogg" },
+    { name = "|cfff47c9bInc - yuno|r", file = "Inc.ogg" },
+    { name = "|cfff47c9bInside - yuno|r", file = "Inside.ogg" },
+    { name = "|cfff47c9bIntermission - yuno|r", file = "Intermission.ogg" },
+    { name = "|cfff47c9bJump - yuno|r", file = "Jump.ogg" },
+    { name = "|cfff47c9bKick - yuno|r", file = "Kick.ogg" },
+    { name = "|cfff47c9bKnock - yuno|r", file = "Knock.ogg" },
+    { name = "|cfff47c9bLeap - yuno|r", file = "Leap.ogg" },
+    { name = "|cfff47c9bLeft - yuno|r", file = "Left.ogg" },
+    { name = "|cfff47c9bLinked - yuno|r", file = "Linked.ogg" },
+    { name = "|cfff47c9bLoS - yuno|r", file = "LoS.ogg" },
+    { name = "|cfff47c9bMelee - yuno|r", file = "Melee.ogg" },
+    { name = "|cfff47c9bMount - yuno|r", file = "Mount.ogg" },
+    { name = "|cfff47c9bMove - yuno|r", file = "Move.ogg" },
+    { name = "|cfff47c9bNext - yuno|r", file = "Next.ogg" },
+    { name = "|cfff47c9bNuke - yuno|r", file = "Nuke.ogg" },
+    { name = "|cfff47c9bOrb - yuno|r", file = "Orb.ogg" },
+    { name = "|cfff47c9bOrbs - yuno|r", file = "Orbs.ogg" },
+    { name = "|cfff47c9bOut - yuno|r", file = "Out.ogg" },
+    { name = "|cfff47c9bOutrange - yuno|r", file = "Outrange.ogg" },
+    { name = "|cfff47c9bPersonal - yuno|r", file = "Personal.ogg" },
+    { name = "|cfff47c9bPlatform - yuno|r", file = "Platform.ogg" },
+    { name = "|cfff47c9bPot - yuno|r", file = "Pot.ogg" },
+    { name = "|cfff47c9bProc - yuno|r", file = "Proc.ogg" },
+    { name = "|cfff47c9bPull - yuno|r", file = "Pull.ogg" },
+    { name = "|cfff47c9bPush - yuno|r", file = "Push.ogg" },
+    { name = "|cfff47c9bRanged - yuno|r", file = "Ranged.ogg" },
+    { name = "|cfff47c9bReady - yuno|r", file = "Ready.ogg" },
+    { name = "|cfff47c9bRe-buff - yuno|r", file = "Re-buff.ogg" },
+    { name = "|cfff47c9bRed - yuno|r", file = "Red.ogg" },
+    { name = "|cfff47c9bReflect - yuno|r", file = "Reflect.ogg" },
+    { name = "|cfff47c9bRight - yuno|r", file = "Right.ogg" },
+    { name = "|cfff47c9bRun - yuno|r", file = "Run.ogg" },
+    { name = "|cfff47c9bSac - yuno|r", file = "Sac.ogg" },
+    { name = "|cfff47c9bShield - yuno|r", file = "Shield.ogg" },
+    { name = "|cfff47c9bSoak - yuno|r", file = "Soak.ogg" },
+    { name = "|cfff47c9bSpike - yuno|r", file = "Spike.ogg" },
+    { name = "|cfff47c9bSpread - yuno|r", file = "Spread.ogg" },
+    { name = "|cfff47c9bStack - yuno|r", file = "Stack.ogg" },
+    { name = "|cfff47c9bStop - yuno|r", file = "Stop.ogg" },
+    { name = "|cfff47c9bStop Cast - yuno|r", file = "StopCast.ogg" },
+    { name = "|cfff47c9bSwap - yuno|r", file = "Swap.ogg" },
+    { name = "|cfff47c9bSwitch - yuno|r", file = "Switch.ogg" },
+    { name = "|cfff47c9bTaunt - yuno|r", file = "Taunt.ogg" },
+    { name = "|cfff47c9bTotem - yuno|r", file = "Totem.ogg" },
+    { name = "|cfff47c9bTrap - yuno|r", file = "Trap.ogg" },
+    { name = "|cfff47c9bTurn - yuno|r", file = "Turn.ogg" },
+    { name = "|cfff47c9bZone - yuno|r", file = "Zone.ogg" },
 }
 -- Packed into tables to stay under Lua's 200-local main-chunk limit.
 local CONST = {
@@ -65,12 +163,16 @@ local State = {
     startupRetryVersion = 0,
     profileOfferScheduled = false,
     freshInstallerOpenScheduled = false,
+    profileUpdatePromptDismissedThisSession = false,
     cooldownImportFrame = nil,
     installerFrame = nil,
     installedProfilesPromptFrame = nil,
     profileUpdatePromptFrame = nil,
     fontsRegistered = false,
     statusbarsRegistered = false,
+    soundsRegistered = false,
+    countdownRegistered = false,
+    barStyleRegistered = false,
     friendlyNameplateCVarHooked = false,
     actionBarPagingDeferFrame = nil,
     actionBarPagingOverrideApplied = false,
@@ -147,10 +249,184 @@ local function RegisterStatusbars()
     return true
 end
 
+local function RegisterSounds()
+    local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
+    if not LSM then return false end
+
+    local base = "Interface\\AddOns\\yuno\\media\\Sounds\\"
+    for _, sound in ipairs(SOUND_MEDIA) do
+        LSM:Register(LSM.MediaType.SOUND, sound.name, base .. sound.file)
+    end
+
+    State.soundsRegistered = true
+    return true
+end
+
+local function RegisterCountdownVoice()
+    if State.countdownRegistered then return true end
+    if not BigWigsAPI or type(BigWigsAPI.RegisterCountdown) ~= "function" then return false end
+    if BigWigsAPI.HasCountdown and BigWigsAPI:HasCountdown("Yuno") then
+        State.countdownRegistered = true
+        return true
+    end
+
+    local base = "Interface\\AddOns\\yuno\\media\\Countdown\\"
+    local ok, err = pcall(BigWigsAPI.RegisterCountdown, BigWigsAPI, "Yuno", "Yuno", {
+        base .. "1.ogg",
+        base .. "2.ogg",
+        base .. "3.ogg",
+        base .. "4.ogg",
+        base .. "5.ogg",
+    })
+    if not ok then
+        -- Already registered by a previous load is fine.
+        if type(err) == "string" and err:find("already registered", 1, true) then
+            State.countdownRegistered = true
+            return true
+        end
+        return false
+    end
+
+    State.countdownRegistered = true
+    return true
+end
+
+local function RegisterBarStyle()
+    if State.barStyleRegistered then return true end
+    if not BigWigsAPI or type(BigWigsAPI.RegisterBarStyle) ~= "function" then return false end
+    if BigWigsAPI.GetBarStyle and BigWigsAPI:GetBarStyle("yuno") then
+        State.barStyleRegistered = true
+        return true
+    end
+
+    local backdropBorder = {
+        edgeFile = "Interface\\Buttons\\WHITE8X8",
+        edgeSize = 1,
+    }
+
+    local function removeStyle(bar)
+        bar.candyBarBackdrop:Hide()
+        bar.candyBarIconFrameBackdrop:Hide()
+        local height = bar:Get("bigwigs:restoreheight")
+        if height then
+            bar:SetHeight(height)
+        end
+
+        local statusbar = bar.candyBarBar
+        local duration = bar.candyBarDuration
+        duration:ClearAllPoints()
+        duration:SetPoint("TOPLEFT", statusbar, "TOPLEFT", 2, 0)
+        duration:SetPoint("BOTTOMRIGHT", statusbar, "BOTTOMRIGHT", -2, 0)
+
+        local label = bar.candyBarLabel
+        label:ClearAllPoints()
+        label:SetPoint("TOPLEFT", statusbar, "TOPLEFT", 2, 0)
+        label:SetPoint("BOTTOMRIGHT", statusbar, "BOTTOMRIGHT", -2, 0)
+    end
+
+    local function styleBar(bar)
+        local barHeight = bar:GetHeight()
+
+        bar:Set("bigwigs:restoreheight", barHeight)
+        bar:SetHeight(barHeight / 2)
+
+        bar.candyBarLabel:ClearAllPoints()
+        bar.candyBarDuration:ClearAllPoints()
+        local statusbar = bar.candyBarBar
+        statusbar:ClearAllPoints()
+
+        local bd = bar.candyBarBackdrop
+        if bd.SetToDefaults then
+            bd:SetToDefaults()
+            bd:SetFrameLevel(0)
+        end
+        bd:ClearAllPoints()
+        bd:SetBackdrop(backdropBorder)
+        bd:SetBackdropColor(0.1, 0.1, 0.1, 1)
+        bd:SetBackdropBorderColor(0, 0, 0, 1)
+        bd:SetPoint("TOPLEFT", statusbar, "TOPLEFT", -1, 1)
+        bd:SetPoint("BOTTOMRIGHT", statusbar, "BOTTOMRIGHT", 1, -1)
+        bd:Show()
+
+        local iconTexture = bar:GetIcon()
+        if iconTexture then
+            local reApplyIcon = false
+            local iconFrame = bar.candyBarIconFrame
+            local iconBd = bar.candyBarIconFrameBackdrop
+            if iconFrame.IsAnchoringSecret and iconFrame:IsAnchoringSecret() then
+                iconFrame:SetToDefaults()
+                iconBd:SetToDefaults()
+                iconBd:SetFrameLevel(0)
+                reApplyIcon = true
+            end
+
+            iconFrame:ClearAllPoints()
+            iconBd:ClearAllPoints()
+
+            if bar:GetIconPosition() == "RIGHT" then
+                iconFrame:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", -2, 0)
+                statusbar:SetPoint("TOPRIGHT", iconFrame, "LEFT", -4, -2)
+                statusbar:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", 2, 0)
+            else
+                iconFrame:SetPoint("BOTTOMLEFT", bar, "BOTTOMLEFT", 2, 0)
+                statusbar:SetPoint("TOPLEFT", iconFrame, "RIGHT", 4, -2)
+                statusbar:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", -2, 0)
+            end
+            iconFrame:SetSize(barHeight, barHeight)
+
+            iconBd:SetBackdrop(backdropBorder)
+            iconBd:SetBackdropColor(0.1, 0.1, 0.1, 1)
+            iconBd:SetBackdropBorderColor(0, 0, 0, 1)
+            iconBd:SetPoint("TOPLEFT", iconFrame, "TOPLEFT", -1, 1)
+            iconBd:SetPoint("BOTTOMRIGHT", iconFrame, "BOTTOMRIGHT", 1, -1)
+            iconBd:Show()
+
+            if reApplyIcon then
+                iconFrame:SetTexture(iconTexture)
+                iconFrame:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+            end
+        end
+
+        bar.candyBarLabel:SetPoint("BOTTOMLEFT", statusbar, "TOPLEFT", 2, -7)
+        bar.candyBarDuration:SetPoint("BOTTOMRIGHT", statusbar, "TOPRIGHT", -2, -7)
+    end
+
+    local ok, err = pcall(BigWigsAPI.RegisterBarStyle, BigWigsAPI, "yuno", {
+        apiVersion = 1,
+        version = 11,
+        barHeight = 20,
+        texture = "Bar Grad",
+        fontName = "Gilroy Bold",
+        fontSizeNormal = 14,
+        fontSizeEmphasized = 14,
+        spellIndicatorsOffset = 2,
+        spellIndicatorsPosition = "RIGHT",
+        fontOutline = "OUTLINE",
+        iconPosition = "RIGHT",
+        GetSpacing = function(bar) return bar:GetHeight() + 4 end,
+        ApplyStyle = styleBar,
+        BarStopped = removeStyle,
+        GetStyleName = function() return "yuno" end,
+    })
+    if not ok then
+        if type(err) == "string" and err:find("already exist", 1, true) then
+            State.barStyleRegistered = true
+            return true
+        end
+        return false
+    end
+
+    State.barStyleRegistered = true
+    return true
+end
+
 local function RegisterMedia()
     local okFonts = RegisterFonts()
     local okBars = RegisterStatusbars()
-    return okFonts or okBars
+    local okSounds = RegisterSounds()
+    local okCountdown = RegisterCountdownVoice()
+    local okBarStyle = RegisterBarStyle()
+    return okFonts or okBars or okSounds or okCountdown or okBarStyle
 end
 
 local BASE_CVARS = {
@@ -374,6 +650,143 @@ local function ApplyYunoUIScale(applyLive)
     end
 end
 
+local function RemapEllesmereFullAccountProfileToYuno(payload)
+    local data = payload and payload.data
+    if type(data) ~= "table" then
+        return false, "EllesmereUI full-account payload is missing data"
+    end
+
+    local oldName = data.activeProfile or payload.profileName or "Default"
+    data.profiles = data.profiles or {}
+
+    if oldName ~= "yuno" then
+        if type(data.profiles[oldName]) == "table" then
+            data.profiles.yuno = data.profiles[oldName]
+            data.profiles[oldName] = nil
+        elseif type(data.profiles.yuno) ~= "table" then
+            for name, pdata in pairs(data.profiles) do
+                data.profiles.yuno = pdata
+                if name ~= "yuno" then
+                    data.profiles[name] = nil
+                end
+                oldName = name
+                break
+            end
+        end
+
+        if type(data.specProfiles) == "table" then
+            for specID, profileName in pairs(data.specProfiles) do
+                if profileName == oldName then
+                    data.specProfiles[specID] = "yuno"
+                end
+            end
+        end
+
+        if data.colorsPullFrom == oldName then
+            data.colorsPullFrom = "yuno"
+        end
+
+        if type(data.syncedModules) == "table" then
+            for _, targets in pairs(data.syncedModules) do
+                if type(targets) == "table" and targets[oldName] ~= nil then
+                    targets.yuno = targets[oldName]
+                    targets[oldName] = nil
+                end
+            end
+        end
+    end
+
+    data.activeProfile = "yuno"
+    data.profileOrder = { "yuno" }
+    payload.profileName = "yuno"
+    return true
+end
+
+-- Ellesmere exports the full override store. If a spec was removed from a group
+-- (or only sits in a conflicting group), leftover per-spec values become
+-- "stranded": they still apply but cannot be edited. Scrub those on import so
+-- installs do not ship with stuck power-bar / layout overrides.
+local function EllesmereSpecInGroup(group, specID)
+    for _, sid in ipairs(group.specs or {}) do
+        if sid == specID then return true end
+    end
+    return false
+end
+
+local function EllesmereGroupsConflict(a, b)
+    for _, sid in ipairs(a.specs or {}) do
+        for _, osid in ipairs(b.specs or {}) do
+            if sid == osid then return true end
+        end
+    end
+    return false
+end
+
+local function EllesmereOverrideValueIsStranded(entry, specID, groups)
+    if type(entry) ~= "table" or entry.group == nil or type(groups) ~= "table" then
+        return false
+    end
+
+    local owner
+    for _, group in ipairs(groups) do
+        if group.id == entry.group then
+            owner = group
+            break
+        end
+    end
+    if not owner then return false end
+    if EllesmereSpecInGroup(owner, specID) then return false end
+
+    local inAnyGroup = false
+    for _, group in ipairs(groups) do
+        if EllesmereSpecInGroup(group, specID) then
+            inAnyGroup = true
+            if not EllesmereGroupsConflict(owner, group) then
+                return false
+            end
+        end
+    end
+    return inAnyGroup
+end
+
+local function ScrubEllesmereStrandedOverridesInProfile(profile)
+    if type(profile) ~= "table" then return end
+    local groups = profile.specOverrideGroups
+    local store = profile.specOverrides
+    if type(groups) ~= "table" or type(store) ~= "table" then return end
+
+    for _, entry in ipairs(store) do
+        if type(entry) == "table" and type(entry.values) == "table" then
+            local remove = {}
+            for specID in pairs(entry.values) do
+                if type(specID) == "number"
+                    and EllesmereOverrideValueIsStranded(entry, specID, groups)
+                then
+                    remove[#remove + 1] = specID
+                end
+            end
+            for _, specID in ipairs(remove) do
+                entry.values[specID] = nil
+            end
+        end
+    end
+end
+
+local function ScrubEllesmereStrandedOverridesInPayload(payload)
+    local data = payload and payload.data
+    if type(data) ~= "table" then return end
+
+    -- Normal profile export: overrides live on the profile data root.
+    ScrubEllesmereStrandedOverridesInProfile(data)
+
+    -- Full-account export: overrides live inside each carried profile.
+    if type(data.profiles) == "table" then
+        for _, profile in pairs(data.profiles) do
+            ScrubEllesmereStrandedOverridesInProfile(profile)
+        end
+    end
+end
+
 local function ImportEllesmereUIProfile()
     local importString = YunoProfiles and YunoProfiles.ellesmereui
     if type(importString) ~= "string" or importString == "" then
@@ -382,7 +795,74 @@ local function ImportEllesmereUIProfile()
 
     TryLoadAddon("EllesmereUI")
 
-    if not EllesmereUI or type(EllesmereUI.ImportProfile) ~= "function" then
+    if not EllesmereUI then
+        return false, "EllesmereUI import API is not available"
+    end
+
+    -- Full-account exports (`type = "fullaccount"`) are rejected by ImportProfile
+    -- with "Unknown profile type". Decode first and route those separately.
+    if type(EllesmereUI.DecodeImportString) == "function" then
+        local payload, decodeErr = EllesmereUI.DecodeImportString(importString)
+        if not payload then
+            return false, tostring(decodeErr or "EllesmereUI decode failed")
+        end
+
+        ScrubEllesmereStrandedOverridesInPayload(payload)
+
+        if type(EllesmereUI.IsFullAccountPayload) == "function"
+            and EllesmereUI.IsFullAccountPayload(payload)
+        then
+            if type(EllesmereUI.ImportFullAccountData) ~= "function" then
+                return false, "EllesmereUI full-account import API is not available"
+            end
+
+            local remapOk, remapErr = RemapEllesmereFullAccountProfileToYuno(payload)
+            if not remapOk then
+                return false, tostring(remapErr)
+            end
+
+            ScrubEllesmereStrandedOverridesInPayload(payload)
+            MarkImportedProfileVersion("ellesmereui")
+
+            -- ImportFullAccountData always ReloadUI(); suppress so the installer /
+            -- reimport dialog can finish other steps and reload once.
+            local realReloadUI = _G.ReloadUI
+            _G.ReloadUI = function() end
+            local ok, success = pcall(EllesmereUI.ImportFullAccountData, payload)
+            _G.ReloadUI = realReloadUI
+
+            if not ok then
+                return false, tostring(success)
+            end
+            if not success then
+                return false, "EllesmereUI full-account import failed"
+            end
+
+            return true, "EllesmereUI full-account profile imported as yuno"
+        end
+
+        if type(EllesmereUI.ImportProfile) ~= "function" then
+            return false, "EllesmereUI import API is not available"
+        end
+
+        local ok, success, err, status = pcall(EllesmereUI.ImportProfile, payload, "yuno")
+        if not ok then
+            return false, tostring(success)
+        end
+        if not success then
+            return false, tostring(err or "EllesmereUI import failed")
+        end
+
+        MarkImportedProfileVersion("ellesmereui")
+
+        if status == "spec_locked" then
+            return true, "EllesmereUI profile imported as yuno; current spec keeps its assigned profile"
+        end
+
+        return true, "EllesmereUI profile imported as yuno"
+    end
+
+    if type(EllesmereUI.ImportProfile) ~= "function" then
         return false, "EllesmereUI import API is not available"
     end
 
@@ -418,6 +898,10 @@ local function ImportBigWigsProfile(callback)
     local wrappedCallback = function(accepted)
         if accepted then
             MarkImportedProfileVersion("bigwigs")
+            local bossString = YunoProfiles and YunoProfiles.bigwigsbosses
+            if type(bossString) == "string" and bossString ~= "" and type(BigWigsAPI.ImportBossOptions) == "function" then
+                pcall(BigWigsAPI.ImportBossOptions, "yuno", bossString)
+            end
         end
         if callback then
             callback(accepted)
@@ -593,6 +1077,61 @@ local function ImportEXBossProfile()
 
     MarkImportedProfileVersion("exboss")
     return true, "EXBoss profile imported as yuno"
+end
+
+local function ImportSArenaProfile()
+    local importString = YunoProfiles and YunoProfiles.sarena
+    if type(importString) ~= "string" or importString == "" then
+        return false, "missing sArena profile string"
+    end
+
+    TryLoadAddon("sArena_Reloaded")
+
+    if not sArena or type(sArena.ImportProfile) ~= "function" then
+        return false, "sArena Reloaded import API is not available"
+    end
+
+    -- externalSource=true skips sArena's forced ReloadUI so the installer can continue.
+    local success, err = sArena:ImportProfile(importString, "yuno", true)
+    if not success then
+        return false, tostring(err or "sArena import failed")
+    end
+
+    if sArena.db and type(sArena.db.SetProfile) == "function" then
+        pcall(sArena.db.SetProfile, sArena.db, "yuno")
+    elseif type(sArena_ReloadedDB) == "table" then
+        sArena_ReloadedDB.profiles = sArena_ReloadedDB.profiles or {}
+        sArena_ReloadedDB.profileKeys = sArena_ReloadedDB.profileKeys or {}
+        sArena_ReloadedDB.profileKeys[GetYunoCharacterKey()] = "yuno"
+    end
+
+    if type(sArena.RefreshConfig) == "function" then
+        pcall(sArena.RefreshConfig, sArena)
+    end
+
+    MarkImportedProfileVersion("sarena")
+    return true, "sArena profile imported as yuno"
+end
+
+local function ImportBaganatorProfile()
+    local importString = YunoProfiles and YunoProfiles.baganator
+    if type(importString) ~= "string" or importString == "" then
+        return false, "missing Baganator profile string"
+    end
+
+    TryLoadAddon("Baganator")
+
+    if not Baganator or not Baganator.API or type(Baganator.API.ImportString) ~= "function" then
+        return false, "Baganator import API is not available"
+    end
+
+    local ok, err = pcall(Baganator.API.ImportString, importString, "yuno")
+    if not ok then
+        return false, tostring(err or "Baganator import failed")
+    end
+
+    MarkImportedProfileVersion("baganator")
+    return true, "Baganator profile imported as yuno"
 end
 
 GetBundledProfileVersion = function(key)
@@ -2226,6 +2765,23 @@ local function EllesmereProfileExists(profileName)
         and type(EllesmereUIDB.profiles[profileName]) == "table"
 end
 
+local function SArenaProfileExists(profileName)
+    if type(sArena_ReloadedDB) == "table"
+        and type(sArena_ReloadedDB.profiles) == "table"
+        and type(sArena_ReloadedDB.profiles[profileName]) == "table" then
+        return true
+    end
+
+    local db = sArena and sArena.db
+    return db and type(db.profiles) == "table" and type(db.profiles[profileName]) == "table"
+end
+
+local function BaganatorProfileExists(profileName)
+    return type(BAGANATOR_CONFIG) == "table"
+        and type(BAGANATOR_CONFIG.Profiles) == "table"
+        and type(BAGANATOR_CONFIG.Profiles[profileName]) == "table"
+end
+
 local function GetActiveEllesmereProfile()
     if EllesmereUI and type(EllesmereUI.GetActiveProfileName) == "function" then
         local ok, profileName = pcall(EllesmereUI.GetActiveProfileName)
@@ -2279,11 +2835,15 @@ local function HasInstalledYunoProfiles()
     TryLoadAddon("BigWigs")
     TryLoadAddon("Blinkiis_Portraits")
     TryLoadAddon("EXBoss")
+    TryLoadAddon("sArena_Reloaded")
+    TryLoadAddon("Baganator")
 
     return EllesmereProfileExists("yuno")
         or BigWigsProfileExists("yuno")
         or BlinkiisPortraitsProfileExists("yuno")
         or EXBossProfileExists("yuno")
+        or SArenaProfileExists("yuno")
+        or BaganatorProfileExists("yuno")
         or FindEditModeLayoutIndex("yuno") ~= nil
 end
 
@@ -2473,6 +3033,59 @@ local function ApplyExistingEditModeLayout(applied, missing, failed)
     applied[#applied + 1] = "Edit Mode"
 end
 
+local function ApplyExistingSArenaProfile(applied, missing, failed)
+    TryLoadAddon("sArena_Reloaded")
+
+    if not SArenaProfileExists("yuno") then
+        missing[#missing + 1] = "sArena"
+        return
+    end
+
+    local db = sArena and sArena.db
+    if db and type(db.SetProfile) == "function" then
+        local ok, err = pcall(db.SetProfile, db, "yuno")
+        if not ok then
+            failed[#failed + 1] = "sArena: " .. tostring(err)
+            return
+        end
+    elseif type(sArena_ReloadedDB) == "table" then
+        sArena_ReloadedDB.profileKeys = sArena_ReloadedDB.profileKeys or {}
+        sArena_ReloadedDB.profileKeys[GetYunoCharacterKey()] = "yuno"
+    else
+        failed[#failed + 1] = "sArena: profile database is not available"
+        return
+    end
+
+    if sArena and type(sArena.RefreshConfig) == "function" then
+        pcall(sArena.RefreshConfig, sArena)
+    end
+
+    applied[#applied + 1] = "sArena"
+end
+
+local function ApplyExistingBaganatorProfile(applied, missing, failed)
+    TryLoadAddon("Baganator")
+
+    if not BaganatorProfileExists("yuno") then
+        missing[#missing + 1] = "Baganator"
+        return
+    end
+
+    if BAGANATOR_CURRENT_PROFILE == "yuno" then
+        applied[#applied + 1] = "Baganator (already active)"
+        return
+    end
+
+    -- ImportString with overwrite activates the named profile via Baganator's ChangeProfile.
+    local ok, message = ImportBaganatorProfile()
+    if not ok then
+        failed[#failed + 1] = "Baganator: " .. tostring(message)
+        return
+    end
+
+    applied[#applied + 1] = "Baganator"
+end
+
 local function ApplyInstalledProfilesToCharacter(markApplied)
     EnsureDB()
 
@@ -2484,6 +3097,8 @@ local function ApplyInstalledProfilesToCharacter(markApplied)
     ApplyExistingBigWigsProfile(applied, missing, failed)
     ApplyExistingBlinkiisPortraitsProfile(applied, missing, failed)
     ApplyExistingEXBossProfile(applied, missing, failed)
+    ApplyExistingSArenaProfile(applied, missing, failed)
+    ApplyExistingBaganatorProfile(applied, missing, failed)
     ApplyExistingEditModeLayout(applied, missing, failed)
 
     if #applied > 0 and #failed == 0 and markApplied then
@@ -2533,11 +3148,13 @@ local function ShowInstalledProfilesPrompt()
         button.bg:SetColorTexture(color[1], color[2], color[3], alpha or color[4] or 1)
     end
 
-    local function CreateSolidButton(parent, label)
+    local function CreateSolidButton(parent, label, primary)
         local button = CreateFrame("Frame", nil, parent)
         button:SetSize(150, 36)
         button:EnableMouse(true)
-        SetButtonBackground(button, UI.Theme.accent)
+        local idle = primary and UI.Theme.accent or UI.Theme.row
+        local hover = primary and UI.Theme.accent or UI.Theme.rowHover
+        SetButtonBackground(button, idle)
 
         button.label = UI:CreateText(button, label, 12, "text", "bold")
         button.label:SetPoint("CENTER")
@@ -2548,17 +3165,18 @@ local function ShowInstalledProfilesPrompt()
         end
 
         button:SetScript("OnEnter", function(self)
-            SetButtonBackground(self, UI.Theme.accent, 0.86)
+            SetButtonBackground(self, hover, primary and 0.86 or 1)
         end)
         button:SetScript("OnLeave", function(self)
-            SetButtonBackground(self, UI.Theme.accent)
+            SetButtonBackground(self, idle)
         end)
         button:SetScript("OnMouseDown", function(self, mouseButton)
             if mouseButton ~= "LeftButton" then return end
-            SetButtonBackground(self, UI.Theme.accent, 0.70)
+            SetButtonBackground(self, primary and UI.Theme.accent or UI.Theme.accentDim, primary and 0.70 or 1)
         end)
         button:SetScript("OnMouseUp", function(self, mouseButton)
-            SetButtonBackground(self, UI.Theme.accent, self:IsMouseOver() and 0.86 or 1)
+            local over = self:IsMouseOver()
+            SetButtonBackground(self, over and hover or idle, (primary and over) and 0.86 or 1)
             if mouseButton == "LeftButton" and self._yunoOnClick then self:_yunoOnClick() end
         end)
 
@@ -2594,11 +3212,10 @@ local function ShowInstalledProfilesPrompt()
         frame.status:SetPoint("BOTTOMRIGHT", frame.body, "BOTTOMRIGHT", 0, 42)
         frame.status:SetJustifyH("CENTER")
 
-        frame.applyButton = CreateSolidButton(frame.body, "Apply & Reload")
+        frame.applyButton = CreateSolidButton(frame.body, "Apply & Reload", true)
         frame.applyButton:SetPoint("BOTTOMRIGHT", frame.body, "BOTTOM", -6, 0)
 
-        frame.dismissButton = UI:CreateFlatButton(frame.body, "Not Now")
-        frame.dismissButton:SetSize(150, 36)
+        frame.dismissButton = CreateSolidButton(frame.body, "Not Now", false)
         frame.dismissButton:SetPoint("BOTTOMLEFT", frame.body, "BOTTOM", 6, 0)
 
         local function Dismiss()
@@ -2673,6 +3290,24 @@ local function GetManagedProfileDefs()
             end,
             import = ImportEllesmereUIProfile,
         },
+        {
+            key = "sarena",
+            label = "sArena",
+            exists = function()
+                TryLoadAddon("sArena_Reloaded")
+                return SArenaProfileExists("yuno")
+            end,
+            import = ImportSArenaProfile,
+        },
+        {
+            key = "baganator",
+            label = "Baganator",
+            exists = function()
+                TryLoadAddon("Baganator")
+                return BaganatorProfileExists("yuno")
+            end,
+            import = ImportBaganatorProfile,
+        },
     }
 end
 
@@ -2699,19 +3334,12 @@ local function GetOutdatedInstalledProfiles()
             local bundled = GetBundledProfileVersion(def.key)
             local imported = YunoDB.importedProfileVersions[def.key]
             if type(imported) ~= "number" then imported = 0 end
-            if imported < bundled and YunoDB.profileUpdateDismissed[def.key] ~= bundled then
+            if imported < bundled then
                 outdated[#outdated + 1] = def
             end
         end
     end
     return outdated
-end
-
-local function MarkProfileUpdatesDismissed(outdated)
-    EnsureDB()
-    for _, def in ipairs(outdated or {}) do
-        YunoDB.profileUpdateDismissed[def.key] = GetBundledProfileVersion(def.key)
-    end
 end
 
 local function FormatProfileLabelList(defs)
@@ -2787,6 +3415,7 @@ local function ShouldOfferProfileUpdates()
     EnsureDB()
     if YunoDB.profileUpdateEnabled == false then return false end
     if YunoDB.installerCompletedVersion ~= CONST.profilePromptVersion then return false end
+    if State.profileUpdatePromptDismissedThisSession then return false end
     return #GetOutdatedInstalledProfiles() > 0
 end
 
@@ -2802,9 +3431,9 @@ local function ShowProfileUpdatePrompt()
     local labelList = FormatProfileLabelList(outdated)
     local copyText
     if #outdated == 1 then
-        copyText = labelList .. " has been updated.\n\nReimport it to get the latest yuno settings?"
+        copyText = labelList .. " has been updated.\n\nReimport it to get the latest version?"
     else
-        copyText = labelList .. " have been updated.\n\nReimport them to get the latest yuno settings?"
+        copyText = labelList .. " have been updated.\n\nReimport them to get the latest versions?"
     end
 
     local function SetButtonBackground(button, color, alpha)
@@ -2815,11 +3444,13 @@ local function ShowProfileUpdatePrompt()
         button.bg:SetColorTexture(color[1], color[2], color[3], alpha or color[4] or 1)
     end
 
-    local function CreateSolidButton(parent, label)
+    local function CreateSolidButton(parent, label, primary)
         local button = CreateFrame("Frame", nil, parent)
         button:SetSize(150, 36)
         button:EnableMouse(true)
-        SetButtonBackground(button, UI.Theme.accent)
+        local idle = primary and UI.Theme.accent or UI.Theme.row
+        local hover = primary and UI.Theme.accent or UI.Theme.rowHover
+        SetButtonBackground(button, idle)
 
         button.label = UI:CreateText(button, label, 12, "text", "bold")
         button.label:SetPoint("CENTER")
@@ -2830,17 +3461,18 @@ local function ShowProfileUpdatePrompt()
         end
 
         button:SetScript("OnEnter", function(self)
-            SetButtonBackground(self, UI.Theme.accent, 0.86)
+            SetButtonBackground(self, hover, primary and 0.86 or 1)
         end)
         button:SetScript("OnLeave", function(self)
-            SetButtonBackground(self, UI.Theme.accent)
+            SetButtonBackground(self, idle)
         end)
         button:SetScript("OnMouseDown", function(self, mouseButton)
             if mouseButton ~= "LeftButton" then return end
-            SetButtonBackground(self, UI.Theme.accent, 0.70)
+            SetButtonBackground(self, primary and UI.Theme.accent or UI.Theme.accentDim, primary and 0.70 or 1)
         end)
         button:SetScript("OnMouseUp", function(self, mouseButton)
-            SetButtonBackground(self, UI.Theme.accent, self:IsMouseOver() and 0.86 or 1)
+            local over = self:IsMouseOver()
+            SetButtonBackground(self, over and hover or idle, (primary and over) and 0.86 or 1)
             if mouseButton == "LeftButton" and self._yunoOnClick then self:_yunoOnClick() end
         end)
 
@@ -2848,7 +3480,7 @@ local function ShowProfileUpdatePrompt()
     end
 
     if not State.profileUpdatePromptFrame then
-        local frame = UI:CreateWindow("YunoProfileUpdatePromptFrame", UIParent, 520, 300)
+        local frame = UI:CreateWindow("YunoProfileUpdatePromptFrame", UIParent, 520, 360)
         frame.subtitle:SetText("profiles")
 
         frame.body = CreateFrame("Frame", nil, frame)
@@ -2865,23 +3497,30 @@ local function ShowProfileUpdatePrompt()
         frame.heading:SetPoint("TOPRIGHT", frame.logo, "BOTTOMRIGHT", 200, -14)
         frame.heading:SetJustifyH("CENTER")
 
+        frame.applyButton = CreateSolidButton(frame.body, "Reimport & Reload", true)
+        frame.applyButton:SetPoint("BOTTOMRIGHT", frame.body, "BOTTOM", -6, 0)
+
+        frame.dismissButton = CreateSolidButton(frame.body, "Not Now", false)
+        frame.dismissButton:SetPoint("BOTTOMLEFT", frame.body, "BOTTOM", 6, 0)
+
+        -- Reserve space above the buttons so body copy never draws through them.
+        frame.status = UI:CreateText(frame.body, "", 11, "muted", "semibold")
+        frame.status:SetPoint("BOTTOMLEFT", frame.body, "BOTTOMLEFT", 0, 48)
+        frame.status:SetPoint("BOTTOMRIGHT", frame.body, "BOTTOMRIGHT", 0, 48)
+        frame.status:SetJustifyH("CENTER")
+        frame.status:SetHeight(16)
+
         frame.copy = UI:CreateText(frame.body, "", 12, "muted", "semibold")
         frame.copy:SetPoint("TOPLEFT", frame.heading, "BOTTOMLEFT", 0, -12)
         frame.copy:SetPoint("TOPRIGHT", frame.heading, "BOTTOMRIGHT", 0, -12)
+        frame.copy:SetPoint("BOTTOMLEFT", frame.status, "TOPLEFT", 0, -10)
+        frame.copy:SetPoint("BOTTOMRIGHT", frame.status, "TOPRIGHT", 0, -10)
         frame.copy:SetJustifyH("CENTER")
+        frame.copy:SetJustifyV("TOP")
+        if frame.copy.SetWordWrap then
+            frame.copy:SetWordWrap(true)
+        end
         frame.copy:SetSpacing(5)
-
-        frame.status = UI:CreateText(frame.body, "", 11, "muted", "semibold")
-        frame.status:SetPoint("BOTTOMLEFT", frame.body, "BOTTOMLEFT", 0, 42)
-        frame.status:SetPoint("BOTTOMRIGHT", frame.body, "BOTTOMRIGHT", 0, 42)
-        frame.status:SetJustifyH("CENTER")
-
-        frame.applyButton = CreateSolidButton(frame.body, "Reimport & Reload")
-        frame.applyButton:SetPoint("BOTTOMRIGHT", frame.body, "BOTTOM", -6, 0)
-
-        frame.dismissButton = UI:CreateFlatButton(frame.body, "Not Now")
-        frame.dismissButton:SetSize(150, 36)
-        frame.dismissButton:SetPoint("BOTTOMLEFT", frame.body, "BOTTOM", 6, 0)
 
         State.profileUpdatePromptFrame = frame
     end
@@ -2892,7 +3531,8 @@ local function ShowProfileUpdatePrompt()
     frame.status:SetText("")
 
     local function Dismiss()
-        MarkProfileUpdatesDismissed(frame._outdatedProfiles)
+        -- Session-only: show again on the next reload while profiles stay outdated.
+        State.profileUpdatePromptDismissedThisSession = true
         frame:Hide()
     end
 
@@ -3844,7 +4484,7 @@ local function ShowInstallerFrame()
             },
             {
                 title = "BigWigs",
-                body = "Imports the yuno BigWigs profile.\n\nBigWigs will show its own confirmation popup. Accept it, then continue.",
+                body = "Imports the yuno BigWigs profile and boss options.\n\nBigWigs will show its own confirmation popup. Accept it, then continue.",
                 action = "Import BigWigs",
                 run = function()
                     local ok, message = ImportBigWigsProfile(function(accepted)
@@ -3867,6 +4507,18 @@ local function ShowInstallerFrame()
                 body = "Imports the yuno EXBoss profile, including available settings, trash cooldowns, and boss slots.",
                 action = "Import EXBoss",
                 run = ImportEXBossProfile,
+            },
+            {
+                title = "sArena",
+                body = "Imports the yuno sArena Reloaded profile.",
+                action = "Import sArena",
+                run = ImportSArenaProfile,
+            },
+            {
+                title = "Baganator",
+                body = "Imports the yuno Baganator bag profile.",
+                action = "Import Baganator",
+                run = ImportBaganatorProfile,
             },
             {
                 title = "Blizzard Edit Mode",
@@ -4799,7 +5451,7 @@ local function ShowHelp()
         ", opacity=" .. tostring(YunoDB.healthBarOpacity or 85) .. "%" ..
         ", tint=" .. math.floor((YunoDB.tint or 0.75) * 100 + 0.5) .. "%")
     Print("/yuno opens settings, /yuno help shows this list")
-    Print("/yuno on|off, /yuno appearance dark|class, /yuno bg on|off, /yuno dark on|off, /yuno theme on|off, /yuno idlefade on|off, /yuno movement on|off|unlock|lock, /yuno paging on|off, /yuno chat right|left, /yuno cdm import, /yuno install ellesmere|bigwigs|editmode|blinkii|exboss|settings, /yuno profiles, /yuno cvars, /yuno fct on|off, /yuno fps, /yuno graphics yuno, /yuno tint 75, /yuno opacity 85, /yuno dmpos, /yuno media, /yuno apply")
+    Print("/yuno on|off, /yuno appearance dark|class, /yuno bg on|off, /yuno dark on|off, /yuno theme on|off, /yuno idlefade on|off, /yuno movement on|off|unlock|lock, /yuno paging on|off, /yuno chat right|left, /yuno cdm import, /yuno install ellesmere|bigwigs|editmode|blinkii|exboss|sarena|baganator|settings, /yuno profiles, /yuno cvars, /yuno fct on|off, /yuno fps, /yuno graphics yuno, /yuno tint 75, /yuno opacity 85, /yuno dmpos, /yuno media, /yuno apply")
 end
 
 SLASH_YUNO1 = "/yuno"
@@ -4966,6 +5618,12 @@ SlashCmdList.YUNO = function(msg)
         elseif arg == "exboss" or arg == "exb" then
             local ok, message = ImportEXBossProfile()
             Print(message or (ok and "EXBoss imported" or "EXBoss import failed"))
+        elseif arg == "sarena" or arg == "arena" or arg == "sarenareloaded" then
+            local ok, message = ImportSArenaProfile()
+            Print(message or (ok and "sArena imported" or "sArena import failed"))
+        elseif arg == "baganator" or arg == "bags" or arg == "bag" then
+            local ok, message = ImportBaganatorProfile()
+            Print(message or (ok and "Baganator imported" or "Baganator import failed"))
         elseif arg == "settings" or arg == "extras" or arg == "blizz" or arg == "blizzard" then
             local ok, message = ApplyEllesmereExtrasSettings()
             Print(message or (ok and "Ellesmere settings applied" or "Ellesmere settings failed"))
@@ -5048,9 +5706,9 @@ SlashCmdList.YUNO = function(msg)
         Print("patched " .. count .. " unit frame bars")
     elseif cmd == "fonts" or cmd == "media" then
         if RegisterMedia() then
-            Print("registered yuno fonts and statusbars with SharedMedia")
+            Print("registered yuno fonts, statusbars, sounds, BigWigs countdown, and bar style")
         else
-            Print("LibSharedMedia-3.0 was not available")
+            Print("LibSharedMedia-3.0 / BigWigs API was not available")
         end
     else
         ShowHelp()
@@ -5074,11 +5732,11 @@ pcall(eventFrame.RegisterEvent, eventFrame, "PLAYER_SPECIALIZATION_CHANGED")
 pcall(eventFrame.RegisterEvent, eventFrame, "ACTIVE_TALENT_GROUP_CHANGED")
 pcall(eventFrame.RegisterEvent, eventFrame, "TRAIT_CONFIG_UPDATED")
 eventFrame:SetScript("OnEvent", function(_, event, addonName)
-    if event == "ADDON_LOADED" and addonName ~= ADDON_NAME and addonName ~= "EllesmereUIUnitFrames" and addonName ~= "EllesmereUIRaidFrames" and addonName ~= "EllesmereUIChat" and addonName ~= "EllesmereUINameplates" and addonName ~= "EllesmereUICooldownManager" and addonName ~= "EllesmereUIResourceBars" and addonName ~= "EllesmereUIActionBars" then
+    if event == "ADDON_LOADED" and addonName ~= ADDON_NAME and addonName ~= "EllesmereUIUnitFrames" and addonName ~= "EllesmereUIRaidFrames" and addonName ~= "EllesmereUIChat" and addonName ~= "EllesmereUINameplates" and addonName ~= "EllesmereUICooldownManager" and addonName ~= "EllesmereUIResourceBars" and addonName ~= "EllesmereUIActionBars" and addonName ~= "BigWigs" and addonName ~= "BigWigs_Plugins" then
         return
     end
 
-    if not State.fontsRegistered or not State.statusbarsRegistered then RegisterMedia() end
+    if not State.fontsRegistered or not State.statusbarsRegistered or not State.soundsRegistered or not State.countdownRegistered or not State.barStyleRegistered then RegisterMedia() end
     EnsureDB()
     HookFriendlyPlayerNameplateCVars()
     HookReload()

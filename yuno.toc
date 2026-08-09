@@ -2,9 +2,9 @@
 ## Title: yuno
 ## Notes: Modern configuration, profile imports and quality-of-life tools for yunoUI.
 ## Author: yuno
-## Version: 4.0
+## Version: 4.5
 ## Dependencies: EllesmereUI, EllesmereUIUnitFrames
-## OptionalDeps: EllesmereUIChat, EllesmereUIBlizzardSkin, EllesmereUIDamageMeters, EllesmereUIRaidFrames, BigWigs, Blinkiis_Portraits, EXBoss
+## OptionalDeps: EllesmereUIChat, EllesmereUIBlizzardSkin, EllesmereUIDamageMeters, EllesmereUIRaidFrames, BigWigs, Blinkiis_Portraits, EXBoss, sArena_Reloaded, Baganator
 ## SavedVariables: YunoDB
 
 CooldownLayouts.lua

@@ -1,3 +1,22 @@
+## yuno 4.5
+
+- Updated the bundled EllesmereUI profile.
+- EllesmereUI import now strips stranded spec overrides left behind by override-group membership changes (e.g. stuck Hide Power Bar values).
+- Added a healing profile that activates automatically on healer specs.
+- Updated the bundled BigWigs core profile.
+- Added BigWigs boss-options import so boss settings ship with the core profile.
+- Registered a Yuno BigWigs countdown voice and bar style.
+- Updated the bundled EXBoss profile.
+- Updated the EXBoss voice files with new self-recorded callouts. Thanks to Angelina for helping and speaking them in <3.
+- Added PvP / arena support via sArena Reloaded.
+- Added Baganator bag profile import.
+- Updated the bundled Cooldown Manager profiles.
+- Added new textures for bars and highlights, and new mouseover arrows.
+- Fixed body copy overlapping the action buttons on long addon lists.
+- !!! Please *fully* reinstall yunoUI to make sure everything is applied correctly !!!.
+- !!! Please *fully* reinstall yunoUI to make sure everything is applied correctly !!!.
+- !!! Please *fully* reinstall yunoUI to make sure everything is applied correctly !!!.
+
 ## yuno 4.0
 
 - Removed the sound channel override and its related settings and commands.
