@@ -1,3 +1,18 @@
+## yuno 5.0
+
+- Rebuilt the installer.
+- Moved chat buttons, health opacity, and class-background tint into Appearance.
+- Added 16:9 and 21:9 EllesmereUI layouts. The installer imports both and uses the one that matches your monitor.
+- You can switch layouts later from `/yuno`.
+- Updated the bundled EllesmereUI profiles.
+- Damage Meter windows now follow the imported layout.
+- Player and target portraits are now built into yuno. Blinkii's Portraits is no longer required.
+- Appearance can draw drop shadows on unit frames, resource bars, and the cooldown manager.
+- Updated the default extras and portrait settings.
+- Removed Movement Tracker. It now lives in EllesmereUI.
+- Please *fully* reinstall yunoUI to make sure everything is applied correctly.
+- That includes deleting the contents of your current AddOn folder and reimporting the WoWUp string.
+
 ## yuno 4.5
 
 - Updated the bundled EllesmereUI profile.
@@ -13,16 +28,12 @@
 - Updated the bundled Cooldown Manager profiles.
 - Added new textures for bars and highlights, and new mouseover arrows.
 - Fixed body copy overlapping the action buttons on long addon lists.
-- !!! Please *fully* reinstall yunoUI to make sure everything is applied correctly !!!.
-- !!! Please *fully* reinstall yunoUI to make sure everything is applied correctly !!!.
-- !!! Please *fully* reinstall yunoUI to make sure everything is applied correctly !!!.
 
 ## yuno 4.0
 
 - Removed the sound channel override and its related settings and commands.
 - Updated the bundled EllesmereUI profile.
 - Updated the bundled Cooldown Manager profiles.
-- Please *fully* reinstall yunoUI to make sure everything is applied correctly.
 
 ## yuno 3.10
 
