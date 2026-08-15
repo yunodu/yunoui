@@ -1,7 +1,7 @@
 <div align="center">
 
 <a href="https://yuno.wtf">
-  <img src="kitsune.png" alt="yuno" width="120">
+  <img src="kitsune.png" alt="yuno" width="200">
 </a>
 
 <p>An EllesmereUI-based World of Warcraft user interface.</p>
