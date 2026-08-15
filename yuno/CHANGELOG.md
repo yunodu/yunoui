@@ -1,3 +1,8 @@
+## yuno 5.0.2
+
+- Fixed Dark Mode class-colored health backgrounds.
+- Fixed the class background tint not coming back after switching to Class Colored and back.
+
 ## yuno 5.0.1
 
 - Fixed a Lua error when drop shadows were applied to party frames.

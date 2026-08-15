@@ -2,4 +2,4 @@
 
 Draft bullets for the next `CHANGELOG.md` entry. Clear or trim this file after promoting.
 
-_(empty — promoted into yuno 5.0.1)_
+_(empty — promoted into yuno 5.0.2)_

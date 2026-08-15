@@ -222,6 +222,11 @@ local function AppearanceToken()
     }, ":")
 end
 
+local function ClearBackgroundTintCache(bg)
+    if not bg then return end
+    bg._yunoR, bg._yunoG, bg._yunoB = nil, nil, nil
+end
+
 local function UnwrapHealthAppearance(health)
     if not health then return end
     if health.PostUpdateColor == health._yunoPostUpdateColor then
@@ -233,6 +238,7 @@ local function UnwrapHealthAppearance(health)
     health._yunoAppearanceToken = nil
     health._yunoBgAnchored = nil
     health._yunoRaidToken = nil
+    ClearBackgroundTintCache(health.bg or health._yunoBg)
 end
 
 local function SetYunoAppearanceMode(mode)
@@ -272,34 +278,47 @@ local function SetYunoAppearanceMode(mode)
     return mode
 end
 
-local function GetClassTint(unit, color)
-    local tint = YunoDB.tint or 0.75
+local function SafeValue(value)
+    if issecretvalue and issecretvalue(value) then return nil end
+    return value
+end
 
-    if color and color.GetRGB then
-        local r, g, b = color:GetRGB()
-        return r * tint, g * tint, b * tint
+local function ClassColorRGB(classToken)
+    classToken = SafeValue(classToken)
+    if not classToken then return end
+    if EllesmereUI and EllesmereUI.GetClassColor then
+        local color = EllesmereUI.GetClassColor(classToken)
+        if color then return color.r, color.g, color.b end
     end
+    local color = RAID_CLASS_COLORS and RAID_CLASS_COLORS[classToken]
+    if color then return color.r, color.g, color.b end
+end
+
+local function GetClassTint(unit)
+    local tint = YunoDB.tint or 0.75
+    local r, g, b
 
     if unit and UnitExists(unit) then
-        if UnitIsPlayer(unit) then
+        if SafeValue(UnitIsPlayer(unit)) then
             local _, classToken = UnitClass(unit)
-            local classColor = classToken and RAID_CLASS_COLORS[classToken]
-            if classColor then
-                return classColor.r * tint, classColor.g * tint, classColor.b * tint
-            end
+            r, g, b = ClassColorRGB(classToken)
         end
-
-        local reaction = UnitReaction(unit, "player")
-        local reactionColor = reaction and FACTION_BAR_COLORS[reaction]
-        if reactionColor then
-            return reactionColor.r * tint, reactionColor.g * tint, reactionColor.b * tint
+        if not r then
+            local reaction = SafeValue(UnitReaction(unit, "player"))
+            local reactionColor = reaction and FACTION_BAR_COLORS and FACTION_BAR_COLORS[reaction]
+            if reactionColor then
+                r, g, b = reactionColor.r, reactionColor.g, reactionColor.b
+            end
         end
     end
 
-    local _, playerClass = UnitClass("player")
-    local playerColor = playerClass and RAID_CLASS_COLORS[playerClass]
-    if playerColor then
-        return playerColor.r * tint, playerColor.g * tint, playerColor.b * tint
+    if not r then
+        local _, playerClass = UnitClass("player")
+        r, g, b = ClassColorRGB(playerClass)
+    end
+
+    if r then
+        return r * tint, g * tint, b * tint
     end
 end
 
@@ -314,6 +333,7 @@ local function RestoreBackgroundColor(health, unit)
     local darkMode = health._yunoDarkModeOverride
     if darkMode == nil then darkMode = IsDarkMode() end
     if darkMode then
+        ClearBackgroundTintCache(bg)
         bg:SetColorTexture(0x4f / 255, 0x4f / 255, 0x4f / 255, 1)
         return
     end
@@ -324,6 +344,7 @@ local function RestoreBackgroundColor(health, unit)
     end
 
     local customBg = settings and settings.customBgColor
+    ClearBackgroundTintCache(bg)
     if customBg then
         bg:SetColorTexture(customBg.r, customBg.g, customBg.b, 1)
     else
@@ -376,8 +397,8 @@ local function ApplyHealthPatch(health, unit, color)
     local bg = GetHealthBackground(health)
     if bg then
         if YunoDB.classBackground then
-            local r, g, b = GetClassTint(unit, color)
-            if r and (bg._yunoR ~= r or bg._yunoG ~= g or bg._yunoB ~= b) then
+            local r, g, b = GetClassTint(unit)
+            if r then
                 bg._yunoR, bg._yunoG, bg._yunoB = r, g, b
                 bg:SetColorTexture(r, g, b, 1)
             end
@@ -547,6 +568,7 @@ local function RestoreRaidFrameBackground(health, isParty)
     if not health or not bg then return end
 
     if IsRaidFrameDarkMode(isParty) then
+        ClearBackgroundTintCache(bg)
         bg:SetColorTexture(0x4f / 255, 0x4f / 255, 0x4f / 255, 1)
         return
     end
@@ -558,6 +580,7 @@ local function RestoreRaidFrameBackground(health, isParty)
 
     local bgColor = GetRaidFrameProfileValue("customBgColor", isParty) or { r = 17 / 255, g = 17 / 255, b = 17 / 255 }
     local bgDarkness = GetRaidFrameProfileValue("bgDarkness", isParty) or 50
+    ClearBackgroundTintCache(bg)
     bg:SetColorTexture(bgColor.r, bgColor.g, bgColor.b, bgDarkness / 100)
 end
 
@@ -566,30 +589,30 @@ ApplyRaidFrameHealthPatch = function(button, health, bg, unit, isParty)
     if not YunoDB.enabled or not health then return end
 
     local token = AppearanceToken() .. ":" .. tostring(isParty)
-    if health._yunoRaidToken == token and health._yunoRaidUnit == unit then
-        return
-    end
-    health._yunoRaidToken = token
-    health._yunoRaidUnit = unit
-    health._yunoUnit = unit
-    health._yunoBg = bg
-    health._yunoBgOwner = button
-    health._yunoDarkModeOverride = IsRaidFrameDarkMode(isParty)
+    local same = health._yunoRaidToken == token and health._yunoRaidUnit == unit
+    if not same then
+        health._yunoRaidToken = token
+        health._yunoRaidUnit = unit
+        health._yunoUnit = unit
+        health._yunoBg = bg
+        health._yunoBgOwner = button
+        health._yunoDarkModeOverride = IsRaidFrameDarkMode(isParty)
 
-    local fill = health.GetStatusBarTexture and health:GetStatusBarTexture()
-    if not health._yunoDarkModeOverride or YunoDB.darkOpacity then
-        local alpha = GetRaidFrameHealthAlpha(isParty)
-        if fill then fill:SetAlpha(alpha) end
-        if bg then bg:SetAlpha(alpha) end
-    end
+        local fill = health.GetStatusBarTexture and health:GetStatusBarTexture()
+        if not health._yunoDarkModeOverride or YunoDB.darkOpacity then
+            local alpha = GetRaidFrameHealthAlpha(isParty)
+            if fill then fill:SetAlpha(alpha) end
+            if bg then bg:SetAlpha(alpha) end
+        end
 
-    AnchorMissingHealthBackground(health)
+        AnchorMissingHealthBackground(health)
+    end
 
     if bg then
         bg._yunoRaidApplying = true
         if YunoDB.classBackground then
             local r, g, b = GetRaidFrameClassTint(unit)
-            if r and (bg._yunoR ~= r or bg._yunoG ~= g or bg._yunoB ~= b) then
+            if r then
                 bg._yunoR, bg._yunoG, bg._yunoB = r, g, b
                 bg:SetColorTexture(r, g, b, 1)
             end
