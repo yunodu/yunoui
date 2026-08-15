@@ -18,26 +18,12 @@ jobs:
 
       - name: Package addon
         run: |
-          mkdir -p package/yuno
+          mkdir -p package
           git archive \
             --format=zip \
-            --prefix=yuno/ \
             --output=package/yuno.zip \
             HEAD \
-            CHANGELOG.md \
-            CooldownLayouts.lua \
-            ProfileStrings.lua \
-            UI.lua \
-            Core.lua \
-            Chat.lua \
-            Health.lua \
-            Portraits.lua \
-            FrameShadows.lua \
-            Imports.lua \
-            Config.lua \
-            Installer.lua \
-            yuno.toc \
-            Media
+            yuno
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2

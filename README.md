@@ -1,13 +1,17 @@
 <div align="center">
 
   <a href="https://yuno.wtf">
-    <img src="yuno.png" alt="yuno" width="220">
+    <img src="logo.png" alt="yuno" width="160">
   </a>
 
-  <br><br>
+  <p>An EllesmereUI-based World of Warcraft user interface.</p>
 
-  ## An EllesmereUI-based World of Warcraft user interface.
-
-  **[Please visit yuno.wtf or click the logo for downloads and installation instructions ➜](https://yuno.wtf)**
+  <p>
+    <a href="https://yuno.wtf">yuno.wtf</a>
+    ·
+    <a href="https://github.com/yunodu/yunoui/releases/latest">download</a>
+    ·
+    <a href="yuno/CHANGELOG.md">changelog</a>
+  </p>
 
 </div>
