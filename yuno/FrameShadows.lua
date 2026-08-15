@@ -32,6 +32,16 @@ local function ShadowsEnabled()
     return YunoDB.enabled == true and YunoDB.frameShadows == true
 end
 
+local function SafeNumber(value, fallback)
+    if issecretvalue and issecretvalue(value) then
+        return fallback
+    end
+    if type(value) ~= "number" then
+        return fallback
+    end
+    return value
+end
+
 local function StrengthScale()
     ns.EnsureDB()
     local value = YunoDB.frameShadowStrength
@@ -74,7 +84,11 @@ end
 local function EffectiveAlpha(frame)
     local a = 1
     while frame do
-        a = a * (frame.GetAlpha and frame:GetAlpha() or 1)
+        local alpha = 1
+        if frame.GetAlpha then
+            alpha = SafeNumber(frame:GetAlpha(), 1)
+        end
+        a = a * alpha
         if a <= 0.15 then return a end
         frame = frame.GetParent and frame:GetParent()
     end
@@ -94,13 +108,13 @@ local function IsPlausibleHost(frame, allowHidden)
     if not frame or not frame.GetWidth then return false end
     if not allowHidden and frame.IsShown and not frame:IsShown() then return false end
     if (EffectiveAlpha(frame) or 1) <= 0.25 then return false end
-    local width = frame:GetWidth() or 0
-    local height = frame:GetHeight() or 0
+    local width = SafeNumber(frame:GetWidth(), 0)
+    local height = SafeNumber(frame:GetHeight(), 0)
     if (width < 8 or height < 4) and frame.GetParent then
         local parent = frame:GetParent()
         if parent and parent.GetWidth then
-            width = parent:GetWidth() or width
-            height = parent:GetHeight() or height
+            width = SafeNumber(parent:GetWidth(), width)
+            height = SafeNumber(parent:GetHeight(), height)
         end
     end
     if width < 8 or height < 4 then
@@ -118,8 +132,8 @@ end
 
 local function IsIconSized(frame)
     if not frame or not frame.GetWidth then return false end
-    local width = frame:GetWidth() or 0
-    local height = frame:GetHeight() or 0
+    local width = SafeNumber(frame:GetWidth(), 0)
+    local height = SafeNumber(frame:GetHeight(), 0)
     if width < 16 or height < 16 or width > 72 or height > 72 then return false end
     return math.abs(width - height) <= 16
 end
@@ -147,7 +161,7 @@ local function FindCompactHealth(button)
         local child = children[i]
         local objectType = child.GetObjectType and child:GetObjectType() or nil
         if objectType == "StatusBar" and child.GetStatusBarTexture then
-            local height = child.GetHeight and child:GetHeight() or 0
+            local height = SafeNumber(child.GetHeight and child:GetHeight(), 0)
             if height > bestHeight then
                 best = child
                 bestHeight = height
@@ -333,8 +347,7 @@ local function HookHost(host)
     if host._yunoShadowHooked then return end
     host._yunoShadowHooked = true
 
-    host:HookScript("OnShow", function(self)
-        SyncShadowState(self)
+    host:HookScript("OnShow", function()
         ns.QueueFrameShadowRefresh()
     end)
     host:HookScript("OnHide", function(self)
@@ -342,8 +355,8 @@ local function HookHost(host)
         if shadow then shadow:Hide() end
     end)
     if hooksecurefunc then
-        hooksecurefunc(host, "SetAlpha", function(self)
-            SyncShadowState(self)
+        hooksecurefunc(host, "SetAlpha", function()
+            ns.QueueFrameShadowRefresh()
         end)
     end
     host:HookScript("OnSizeChanged", function()
@@ -361,7 +374,7 @@ local function HookHost(host)
         end)
         if hooksecurefunc then
             hooksecurefunc(unitFrame, "SetAlpha", function()
-                SyncShadowState(host)
+                ns.QueueFrameShadowRefresh()
             end)
         end
     end
@@ -432,10 +445,10 @@ local function LayoutShadow(host, shadow)
         end
     end
     if power and power:IsShown() then
-        local healthTop = host.GetTop and host:GetTop()
-        local powerTop = power.GetTop and power:GetTop()
-        local healthBottom = host.GetBottom and host:GetBottom()
-        local powerBottom = power.GetBottom and power:GetBottom()
+        local healthTop = SafeNumber(host.GetTop and host:GetTop())
+        local powerTop = SafeNumber(power.GetTop and power:GetTop())
+        local healthBottom = SafeNumber(host.GetBottom and host:GetBottom())
+        local powerBottom = SafeNumber(power.GetBottom and power:GetBottom())
         if healthTop and powerTop and powerTop > healthTop + 0.5 then
             top = power
         end
@@ -448,8 +461,8 @@ local function LayoutShadow(host, shadow)
     shadow:SetPoint("TOPLEFT", top, "TOPLEFT", 0, 0)
     shadow:SetPoint("BOTTOMRIGHT", bottom, "BOTTOMRIGHT", 0, 0)
 
-    local width = host:GetWidth() or 0
-    local height = host:GetHeight() or 0
+    local width = SafeNumber(host:GetWidth(), 0)
+    local height = SafeNumber(host:GetHeight(), 0)
     local edge = EDGE
     if width <= 64 and height <= 64 then
         edge = 10

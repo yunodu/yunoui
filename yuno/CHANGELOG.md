@@ -1,3 +1,7 @@
+## yuno 5.0.1
+
+- Fixed a Lua error when drop shadows were applied to party frames.
+
 ## yuno 5.0
 
 - Rebuilt the installer.
