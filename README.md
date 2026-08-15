@@ -4,21 +4,23 @@
   <img src="logo.svg" alt="yuno" width="120">
 </a>
 
-# yuno
+<p>An EllesmereUI-based World of Warcraft user interface.</p>
 
-An EllesmereUI-based World of Warcraft user interface.
+<p>
+  <a href="https://yuno.wtf">yuno.wtf</a>
+  ·
+  <a href="https://github.com/yunodu/yunoui/releases/latest">Download</a>
+  ·
+  <a href="https://www.curseforge.com/wow/addons/yuno">CurseForge</a>
+  ·
+  <a href="yuno/CHANGELOG.md">Changelog</a>
+</p>
 
-[yuno.wtf](https://yuno.wtf)
-&nbsp;·&nbsp;
-[Download](https://github.com/yunodu/yunoui/releases/latest)
-&nbsp;·&nbsp;
-[CurseForge](https://www.curseforge.com/wow/addons/yuno)
-&nbsp;·&nbsp;
-[Changelog](yuno/CHANGELOG.md)
+<p><img src="screenshots/dark_idle.jpg" alt="Idle" width="920"></p>
+<p><img src="screenshots/dark_dps_dungeon.jpg" alt="Dungeon" width="920"></p>
+<p><img src="screenshots/color_heal_raid.jpg" alt="Raid" width="920"></p>
 
 </div>
-
-<br>
 
 yuno is the installer, profiles, and extras on top of [EllesmereUI](https://www.curseforge.com/wow/addons/ellesmereui). It imports 16:9 and 21:9 layouts, player and target portraits, frame shadows, and the supporting profiles for BigWigs, EXBoss, sArena, and Baganator.
 
