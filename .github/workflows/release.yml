@@ -21,12 +21,12 @@ jobs:
           mkdir -p package
           git archive \
             --format=zip \
-            --output=package/yuno.zip \
+            --output=package/inari.zip \
             HEAD \
-            yuno
+            inari
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          files: package/yuno.zip
+          files: package/inari.zip
           generate_release_notes: true

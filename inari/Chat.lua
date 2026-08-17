@@ -21,7 +21,7 @@ local function SameColor(left, right)
 end
 
 local function ApplyEllesmereThemeSettings(forceLive, refreshOptions)
-    if not YunoDB.forceEUITheme then return false end
+    if not InariDB.forceEUITheme then return false end
 
     local root = _G.EllesmereUIDB
     if type(root) ~= "table" then return false end
@@ -75,7 +75,7 @@ local function ApplyChatSidebarPosition()
     if not sidebar or not bg then return false end
 
     sidebar:ClearAllPoints()
-    if YunoDB.forceChatSidebarRight then
+    if InariDB.forceChatSidebarRight then
         sidebar:SetPoint("TOPLEFT", bg, "TOPRIGHT", 0, 0)
         sidebar:SetPoint("BOTTOMLEFT", bg, "BOTTOMRIGHT", 0, 0)
     else
@@ -85,7 +85,7 @@ local function ApplyChatSidebarPosition()
 
     if data.sidebarDiv then
         data.sidebarDiv:ClearAllPoints()
-        if YunoDB.forceChatSidebarRight then
+        if InariDB.forceChatSidebarRight then
             data.sidebarDiv:SetPoint("TOPLEFT", sidebar, "TOPLEFT", 0, 0)
             data.sidebarDiv:SetPoint("BOTTOMLEFT", sidebar, "BOTTOMLEFT", 0, 0)
         else
@@ -263,8 +263,8 @@ ApplyChatSettings = function()
         end
     end
 
-    if chat.sidebarRight ~= YunoDB.forceChatSidebarRight then
-        chat.sidebarRight = YunoDB.forceChatSidebarRight and true or false
+    if chat.sidebarRight ~= InariDB.forceChatSidebarRight then
+        chat.sidebarRight = InariDB.forceChatSidebarRight and true or false
         changed = true
     end
 
@@ -300,13 +300,13 @@ local function GetVehicleBarIndexSafe()
     return 12
 end
 
-local YUNO_ACTION_BAR_MODIFIER_STATES = {
+local INARI_ACTION_BAR_MODIFIER_STATES = {
     { id = "alt",   macro = "[mod:alt]" },
     { id = "shift", macro = "[mod:shift]" },
     { id = "ctrl",  macro = "[mod:ctrl]" },
 }
 
-local YUNO_ACTION_BAR_CLASS_STATES = {
+local INARI_ACTION_BAR_CLASS_STATES = {
     DRUID = {
         { id = "prowl",   macro = "[bonusbar:1,stealth]" },
         { id = "cat",     macro = "[bonusbar:1]" },
@@ -326,19 +326,19 @@ local YUNO_ACTION_BAR_CLASS_STATES = {
     },
 }
 
-local YUNO_ACTION_BAR_CLASS_DEFAULTS = {
+local INARI_ACTION_BAR_CLASS_DEFAULTS = {
     DRUID = { prowl = 7, cat = 7, tree = 8, bear = 9, moonkin = 10 },
     ROGUE = { stealth = 7 },
 }
 
-local function BuildYunoMainBarPagingConditions(pagingConfig, disableClassPaging)
+local function BuildInariMainBarPagingConditions(pagingConfig, disableClassPaging)
     local parts = {
         "[overridebar] " .. GetOverrideBarIndexSafe(),
         "[vehicleui][possessbar] " .. GetVehicleBarIndexSafe(),
     }
 
     if type(pagingConfig) == "table" then
-        for _, state in ipairs(YUNO_ACTION_BAR_MODIFIER_STATES) do
+        for _, state in ipairs(INARI_ACTION_BAR_MODIFIER_STATES) do
             local page = pagingConfig[state.id]
             if page then
                 parts[#parts + 1] = state.macro .. " " .. page
@@ -347,9 +347,9 @@ local function BuildYunoMainBarPagingConditions(pagingConfig, disableClassPaging
     end
 
     local _, class = UnitClass("player")
-    local classStates = not disableClassPaging and YUNO_ACTION_BAR_CLASS_STATES[class]
+    local classStates = not disableClassPaging and INARI_ACTION_BAR_CLASS_STATES[class]
     if classStates then
-        local defaults = YUNO_ACTION_BAR_CLASS_DEFAULTS[class]
+        local defaults = INARI_ACTION_BAR_CLASS_DEFAULTS[class]
         for _, state in ipairs(classStates) do
             local page = type(pagingConfig) == "table" and pagingConfig[state.id] or nil
             if page then
@@ -368,15 +368,15 @@ local function BuildYunoMainBarPagingConditions(pagingConfig, disableClassPaging
     return table.concat(parts, "; ")
 end
 
-local function ApplyYunoMainBarKeybindOverride()
+local function ApplyInariMainBarKeybindOverride()
     if InCombatLockdown and InCombatLockdown() then return false end
 
     if not State.actionBarPagingBindOwner then
-        State.actionBarPagingBindOwner = CreateFrame("Frame", "YunoActionBarPagingBindOwner", UIParent)
+        State.actionBarPagingBindOwner = CreateFrame("Frame", "InariActionBarPagingBindOwner", UIParent)
     end
     ClearOverrideBindings(State.actionBarPagingBindOwner)
 
-    if YunoDB.disableEllesmereActionBarPaging ~= true then
+    if InariDB.disableEllesmereActionBarPaging ~= true then
         return true
     end
 
@@ -393,11 +393,11 @@ local function ApplyYunoMainBarKeybindOverride()
     return true
 end
 
-local function HookYunoMainBarKeybindOverride()
+local function HookInariMainBarKeybindOverride()
     if State.actionBarPagingKeybindHooked or type(_G._EAB_UpdateKeybinds) ~= "function" or not hooksecurefunc then return end
     local ok = pcall(hooksecurefunc, "_EAB_UpdateKeybinds", function()
-        if type(YunoDB) == "table" and YunoDB.disableEllesmereActionBarPaging == true then
-            C_Timer.After(0, ApplyYunoMainBarKeybindOverride)
+        if type(InariDB) == "table" and InariDB.disableEllesmereActionBarPaging == true then
+            C_Timer.After(0, ApplyInariMainBarKeybindOverride)
         end
     end)
     State.actionBarPagingKeybindHooked = ok and true or false
@@ -417,10 +417,10 @@ local function ApplyEllesmereActionBarPagingOverride()
         return false
     end
 
-    HookYunoMainBarKeybindOverride()
+    HookInariMainBarKeybindOverride()
     local profile = GetEllesmereAddonProfile and GetEllesmereAddonProfile("EllesmereUIActionBars")
     local pagingConfig = profile and profile.bars and profile.bars.MainBar and profile.bars.MainBar.paging
-    local disableClassPaging = YunoDB.disableEllesmereActionBarPaging == true
+    local disableClassPaging = InariDB.disableEllesmereActionBarPaging == true
     if not disableClassPaging and not State.actionBarPagingOverrideApplied then return false end
 
     local frame = _G.EABBar_MainBar
@@ -434,10 +434,10 @@ local function ApplyEllesmereActionBarPagingOverride()
         UnregisterStateDriver(frame, "page")
     end
     if RegisterStateDriver then
-        RegisterStateDriver(frame, "page", BuildYunoMainBarPagingConditions(pagingConfig, disableClassPaging))
+        RegisterStateDriver(frame, "page", BuildInariMainBarPagingConditions(pagingConfig, disableClassPaging))
     end
 
-    ApplyYunoMainBarKeybindOverride()
+    ApplyInariMainBarKeybindOverride()
     State.actionBarPagingOverrideApplied = disableClassPaging
 
     return true

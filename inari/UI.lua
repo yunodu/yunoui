@@ -1,13 +1,13 @@
 local ADDON_NAME, ns = ...
 
 ns = ns or {}
-_G.yuno = ns
+_G.inari = ns
 
 local UI = ns.UI or {}
 ns.UI = UI
-_G.YunoUI = UI
+_G.InariUI = UI
 
-local MEDIA = "Interface\\AddOns\\yuno\\Media\\"
+local MEDIA = "Interface\\AddOns\\inari\\Media\\"
 
 UI.Media = {
     Logo = MEDIA .. "logo.png",
@@ -64,7 +64,7 @@ local function ApplyTexture(frame, key, layer, color, alpha)
 end
 
 local function SetFlatBackground(frame, color, alpha)
-    return ApplyTexture(frame, "_yunoBg", "BACKGROUND", color, alpha)
+    return ApplyTexture(frame, "_inariBg", "BACKGROUND", color, alpha)
 end
 
 local function FontPath(weight)
@@ -82,9 +82,9 @@ end
 
 local function SetFont(fontString, size, weight, flags)
     size = size or 12
-    fontString._yunoFontSize = size
-    fontString._yunoFontWeight = weight
-    fontString._yunoFontFlags = flags
+    fontString._inariFontSize = size
+    fontString._inariFontWeight = weight
+    fontString._inariFontFlags = flags
     if ApplyFont(fontString, FontPath(weight), size, flags) then
         return true
     end
@@ -141,10 +141,10 @@ end
 
 local function AddBorder(frame, thickness)
     thickness = thickness or 2
-    local border = frame._yunoBorder
+    local border = frame._inariBorder
     if not border then
         border = {}
-        frame._yunoBorder = border
+        frame._inariBorder = border
         local function Edge(key)
             local tex = frame:CreateTexture(nil, "BORDER")
             tex:SetColorTexture(Unpack(UI.Theme.line))
@@ -181,7 +181,7 @@ local function AddBorder(frame, thickness)
 end
 
 local function SetBorderColor(frame, color, alpha)
-    local border = frame._yunoBorder
+    local border = frame._inariBorder
     if not border then return end
     for _, key in ipairs({ "top", "bottom", "left", "right" }) do
         local tex = border[key]
@@ -190,7 +190,7 @@ local function SetBorderColor(frame, color, alpha)
 end
 
 local function SetBorderShown(frame, shown)
-    local border = frame._yunoBorder
+    local border = frame._inariBorder
     if not border then return end
     for _, key in ipairs({ "top", "bottom", "left", "right" }) do
         local tex = border[key]
@@ -255,13 +255,13 @@ function UI:ReapplyFonts(root)
         if frame.GetRegions then
             local regions = { frame:GetRegions() }
             for _, region in ipairs(regions) do
-                if region and region.GetObjectType and region:GetObjectType() == "FontString" and region._yunoFontSize then
-                    SetFont(region, region._yunoFontSize, region._yunoFontWeight, region._yunoFontFlags)
+                if region and region.GetObjectType and region:GetObjectType() == "FontString" and region._inariFontSize then
+                    SetFont(region, region._inariFontSize, region._inariFontWeight, region._inariFontFlags)
                 end
             end
         end
-        if frame.GetObjectType and frame:GetObjectType() == "EditBox" and frame._yunoFontSize then
-            SetFont(frame, frame._yunoFontSize, frame._yunoFontWeight, frame._yunoFontFlags)
+        if frame.GetObjectType and frame:GetObjectType() == "EditBox" and frame._inariFontSize then
+            SetFont(frame, frame._inariFontSize, frame._inariFontWeight, frame._inariFontFlags)
         end
         if frame.GetChildren then
             local children = { frame:GetChildren() }
@@ -342,12 +342,12 @@ function UI:CreateButton(parent, label, variant)
     button.activeIndicator:Hide()
 
     function button:SetOnClick(callback)
-        self._yunoOnClick = callback
+        self._inariOnClick = callback
     end
 
     function button:SetLabel(text)
         self._labelText = text or ""
-        SetFont(self.label, self.label._yunoFontSize or 12, "bold", self.label._yunoFontFlags)
+        SetFont(self.label, self.label._inariFontSize or 12, "bold", self.label._inariFontFlags)
         self.label:SetText(self._labelText)
     end
 
@@ -385,7 +385,7 @@ function UI:CreateButton(parent, label, variant)
     end)
     button:SetScript("OnClick", function(self)
         if self._disabled then return end
-        if self._yunoOnClick then self:_yunoOnClick() end
+        if self._inariOnClick then self:_inariOnClick() end
     end)
 
     ApplyButtonVisual(button)
@@ -854,7 +854,7 @@ function UI:CreateWindow(name, parent, width, height, context)
     SnapSize(frame.logo, 32, 32)
     frame.logo:SetPoint("LEFT", 16, 0)
 
-    frame.title = self:CreateText(frame.header, "yuno", 16, "text", "bold")
+    frame.title = self:CreateText(frame.header, "inari", 16, "text", "bold")
     frame.title:SetPoint("LEFT", frame.logo, "RIGHT", 10, 1)
 
     frame.backButton = self:CreateGhostButton(frame.header, "<")
@@ -961,7 +961,7 @@ function UI:CreateSidebarButton(parent, label, pageId)
     end
 
     function button:SetOnClick(callback)
-        self._yunoOnClick = callback
+        self._inariOnClick = callback
     end
 
     button:SetScript("OnEnter", function(self)
@@ -973,7 +973,7 @@ function UI:CreateSidebarButton(parent, label, pageId)
         self:SetActive(self._active)
     end)
     button:SetScript("OnClick", function(self)
-        if self._yunoOnClick then self:_yunoOnClick() end
+        if self._inariOnClick then self:_inariOnClick() end
     end)
     button:SetActive(false)
     return button

@@ -1,11 +1,12 @@
 ## Interface: 120000, 120001, 120005, 120007, 120100
-## Title: yuno
-## Notes: Modern configuration, profile imports and quality-of-life tools for yunoUI.
-## Author: yuno
-## Version: 5.0.2
+## Title: inari
+## Notes: Modern configuration, profile imports and quality-of-life tools for inari.
+## IconTexture: Interface\AddOns\inari\Media\logo.png
+## Author: inari
+## Version: 1.0.5
 ## Dependencies: EllesmereUI, EllesmereUIUnitFrames
 ## OptionalDeps: EllesmereUIChat, EllesmereUIBlizzardSkin, EllesmereUIDamageMeters, EllesmereUIRaidFrames, BigWigs, EXBoss, sArena_Reloaded, Baganator
-## SavedVariables: YunoDB
+## SavedVariables: InariDB
 
 CooldownLayouts.lua
 ProfileStrings.lua

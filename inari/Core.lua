@@ -28,110 +28,110 @@ local DB_UNITS = {
     "party", "raid", "boss",
 }
 local FONT_MEDIA = {
-    { name = "Gilroy", path = "Interface\\AddOns\\yuno\\Media\\Gilroy-Regular.ttf" },
-    { name = "Gilroy SemiBold", path = "Interface\\AddOns\\yuno\\Media\\Gilroy-SemiBold.ttf" },
-    { name = "Gilroy Bold", path = "Interface\\AddOns\\yuno\\Media\\Gilroy-Bold.ttf" },
+    { name = "Gilroy", path = "Interface\\AddOns\\inari\\Media\\Gilroy-Regular.ttf" },
+    { name = "Gilroy SemiBold", path = "Interface\\AddOns\\inari\\Media\\Gilroy-SemiBold.ttf" },
+    { name = "Gilroy Bold", path = "Interface\\AddOns\\inari\\Media\\Gilroy-Bold.ttf" },
 }
 local STATUSBAR_MEDIA = {
-    { name = "Skyline Compact", path = "Interface\\AddOns\\yuno\\Media\\bar_skyline_compact.png" },
-    { name = "Bar Grad", path = "Interface\\AddOns\\yuno\\Media\\bar_grad.tga" },
+    { name = "Skyline Compact", path = "Interface\\AddOns\\inari\\Media\\bar_skyline_compact.png" },
+    { name = "Bar Grad", path = "Interface\\AddOns\\inari\\Media\\bar_grad.tga" },
 }
--- Display names match Naowh's labels, tagged as yuno for WeakAuras / SharedMedia pickers.
+-- Display names match Naowh's labels, tagged as inari for WeakAuras / SharedMedia pickers.
 local SOUND_MEDIA = {
-    { name = "|cfff47c9b+Damage - yuno|r", file = "+Damage.ogg" },
-    { name = "|cfff47c9b1 - yuno|r", file = "1.ogg" },
-    { name = "|cfff47c9b2 - yuno|r", file = "2.ogg" },
-    { name = "|cfff47c9b3 - yuno|r", file = "3.ogg" },
-    { name = "|cfff47c9b4 - yuno|r", file = "4.ogg" },
-    { name = "|cfff47c9b5 - yuno|r", file = "5.ogg" },
-    { name = "|cfff47c9b6 - yuno|r", file = "6.ogg" },
-    { name = "|cfff47c9b7 - yuno|r", file = "7.ogg" },
-    { name = "|cfff47c9b8 - yuno|r", file = "8.ogg" },
-    { name = "|cfff47c9b9 - yuno|r", file = "9.ogg" },
-    { name = "|cfff47c9b10 - yuno|r", file = "10.ogg" },
-    { name = "|cfff47c9bAbsorb - yuno|r", file = "Absorb.ogg" },
-    { name = "|cfff47c9bAdd - yuno|r", file = "Add.ogg" },
-    { name = "|cfff47c9bAdds - yuno|r", file = "Adds.ogg" },
-    { name = "|cfff47c9bAoE - yuno|r", file = "AoE.ogg" },
-    { name = "|cfff47c9bApex - yuno|r", file = "Apex.ogg" },
-    { name = "|cfff47c9bArrow - yuno|r", file = "Arrow.ogg" },
-    { name = "|cfff47c9bAvoid - yuno|r", file = "Avoid.ogg" },
-    { name = "|cfff47c9bBait - yuno|r", file = "Bait.ogg" },
-    { name = "|cfff47c9bBeam - yuno|r", file = "Beam.ogg" },
-    { name = "|cfff47c9bBehind - yuno|r", file = "Behind.ogg" },
-    { name = "|cfff47c9bBloodlust - yuno|r", file = "Bloodlust.ogg" },
-    { name = "|cfff47c9bBomb - yuno|r", file = "Bomb.ogg" },
-    { name = "|cfff47c9bBreath - yuno|r", file = "Breath.ogg" },
-    { name = "|cfff47c9bBuff - yuno|r", file = "Buff.ogg" },
-    { name = "|cfff47c9bCC - yuno|r", file = "CC.ogg" },
-    { name = "|cfff47c9bCharge - yuno|r", file = "Charge.ogg" },
-    { name = "|cfff47c9bClear In - yuno|r", file = "ClearIn.ogg" },
-    { name = "|cfff47c9bClear - yuno|r", file = "Clear.ogg" },
-    { name = "|cfff47c9bCollect - yuno|r", file = "Collect.ogg" },
-    { name = "|cfff47c9bCombat - yuno|r", file = "Combat.ogg" },
-    { name = "|cfff47c9bDance - yuno|r", file = "Dance.ogg" },
-    { name = "|cfff47c9bDebuff - yuno|r", file = "Debuff.ogg" },
-    { name = "|cfff47c9bDestroy - yuno|r", file = "Destroy.ogg" },
-    { name = "|cfff47c9bDispell - yuno|r", file = "Dispell.ogg" },
-    { name = "|cfff47c9bDodge Inc - yuno|r", file = "DodgeInc.ogg" },
-    { name = "|cfff47c9bDodge - yuno|r", file = "Dodge.ogg" },
-    { name = "|cfff47c9bDot - yuno|r", file = "Dot.ogg" },
-    { name = "|cfff47c9bExternal - yuno|r", file = "External.ogg" },
-    { name = "|cfff47c9bFixate - yuno|r", file = "Fixate.ogg" },
-    { name = "|cfff47c9bFreedom - yuno|r", file = "Freedom.ogg" },
-    { name = "|cfff47c9bFrontal - yuno|r", file = "Frontal.ogg" },
-    { name = "|cfff47c9bGreen - yuno|r", file = "Green.ogg" },
-    { name = "|cfff47c9bHide - yuno|r", file = "Hide.ogg" },
-    { name = "|cfff47c9bHigh Stacks - yuno|r", file = "HighStacks.ogg" },
-    { name = "|cfff47c9bImmune - yuno|r", file = "Immune.ogg" },
-    { name = "|cfff47c9bIn - yuno|r", file = "In.ogg" },
-    { name = "|cfff47c9bInc - yuno|r", file = "Inc.ogg" },
-    { name = "|cfff47c9bInside - yuno|r", file = "Inside.ogg" },
-    { name = "|cfff47c9bIntermission - yuno|r", file = "Intermission.ogg" },
-    { name = "|cfff47c9bJump - yuno|r", file = "Jump.ogg" },
-    { name = "|cfff47c9bKick - yuno|r", file = "Kick.ogg" },
-    { name = "|cfff47c9bKnock - yuno|r", file = "Knock.ogg" },
-    { name = "|cfff47c9bLeap - yuno|r", file = "Leap.ogg" },
-    { name = "|cfff47c9bLeft - yuno|r", file = "Left.ogg" },
-    { name = "|cfff47c9bLinked - yuno|r", file = "Linked.ogg" },
-    { name = "|cfff47c9bLoS - yuno|r", file = "LoS.ogg" },
-    { name = "|cfff47c9bMelee - yuno|r", file = "Melee.ogg" },
-    { name = "|cfff47c9bMount - yuno|r", file = "Mount.ogg" },
-    { name = "|cfff47c9bMove - yuno|r", file = "Move.ogg" },
-    { name = "|cfff47c9bNext - yuno|r", file = "Next.ogg" },
-    { name = "|cfff47c9bNuke - yuno|r", file = "Nuke.ogg" },
-    { name = "|cfff47c9bOrb - yuno|r", file = "Orb.ogg" },
-    { name = "|cfff47c9bOrbs - yuno|r", file = "Orbs.ogg" },
-    { name = "|cfff47c9bOut - yuno|r", file = "Out.ogg" },
-    { name = "|cfff47c9bOutrange - yuno|r", file = "Outrange.ogg" },
-    { name = "|cfff47c9bPersonal - yuno|r", file = "Personal.ogg" },
-    { name = "|cfff47c9bPlatform - yuno|r", file = "Platform.ogg" },
-    { name = "|cfff47c9bPot - yuno|r", file = "Pot.ogg" },
-    { name = "|cfff47c9bProc - yuno|r", file = "Proc.ogg" },
-    { name = "|cfff47c9bPull - yuno|r", file = "Pull.ogg" },
-    { name = "|cfff47c9bPush - yuno|r", file = "Push.ogg" },
-    { name = "|cfff47c9bRanged - yuno|r", file = "Ranged.ogg" },
-    { name = "|cfff47c9bReady - yuno|r", file = "Ready.ogg" },
-    { name = "|cfff47c9bRe-buff - yuno|r", file = "Re-buff.ogg" },
-    { name = "|cfff47c9bRed - yuno|r", file = "Red.ogg" },
-    { name = "|cfff47c9bReflect - yuno|r", file = "Reflect.ogg" },
-    { name = "|cfff47c9bRight - yuno|r", file = "Right.ogg" },
-    { name = "|cfff47c9bRun - yuno|r", file = "Run.ogg" },
-    { name = "|cfff47c9bSac - yuno|r", file = "Sac.ogg" },
-    { name = "|cfff47c9bShield - yuno|r", file = "Shield.ogg" },
-    { name = "|cfff47c9bSoak - yuno|r", file = "Soak.ogg" },
-    { name = "|cfff47c9bSpike - yuno|r", file = "Spike.ogg" },
-    { name = "|cfff47c9bSpread - yuno|r", file = "Spread.ogg" },
-    { name = "|cfff47c9bStack - yuno|r", file = "Stack.ogg" },
-    { name = "|cfff47c9bStop - yuno|r", file = "Stop.ogg" },
-    { name = "|cfff47c9bStop Cast - yuno|r", file = "StopCast.ogg" },
-    { name = "|cfff47c9bSwap - yuno|r", file = "Swap.ogg" },
-    { name = "|cfff47c9bSwitch - yuno|r", file = "Switch.ogg" },
-    { name = "|cfff47c9bTaunt - yuno|r", file = "Taunt.ogg" },
-    { name = "|cfff47c9bTotem - yuno|r", file = "Totem.ogg" },
-    { name = "|cfff47c9bTrap - yuno|r", file = "Trap.ogg" },
-    { name = "|cfff47c9bTurn - yuno|r", file = "Turn.ogg" },
-    { name = "|cfff47c9bZone - yuno|r", file = "Zone.ogg" },
+    { name = "|cfff47c9b+Damage - inari|r", file = "+Damage.ogg" },
+    { name = "|cfff47c9b1 - inari|r", file = "1.ogg" },
+    { name = "|cfff47c9b2 - inari|r", file = "2.ogg" },
+    { name = "|cfff47c9b3 - inari|r", file = "3.ogg" },
+    { name = "|cfff47c9b4 - inari|r", file = "4.ogg" },
+    { name = "|cfff47c9b5 - inari|r", file = "5.ogg" },
+    { name = "|cfff47c9b6 - inari|r", file = "6.ogg" },
+    { name = "|cfff47c9b7 - inari|r", file = "7.ogg" },
+    { name = "|cfff47c9b8 - inari|r", file = "8.ogg" },
+    { name = "|cfff47c9b9 - inari|r", file = "9.ogg" },
+    { name = "|cfff47c9b10 - inari|r", file = "10.ogg" },
+    { name = "|cfff47c9bAbsorb - inari|r", file = "Absorb.ogg" },
+    { name = "|cfff47c9bAdd - inari|r", file = "Add.ogg" },
+    { name = "|cfff47c9bAdds - inari|r", file = "Adds.ogg" },
+    { name = "|cfff47c9bAoE - inari|r", file = "AoE.ogg" },
+    { name = "|cfff47c9bApex - inari|r", file = "Apex.ogg" },
+    { name = "|cfff47c9bArrow - inari|r", file = "Arrow.ogg" },
+    { name = "|cfff47c9bAvoid - inari|r", file = "Avoid.ogg" },
+    { name = "|cfff47c9bBait - inari|r", file = "Bait.ogg" },
+    { name = "|cfff47c9bBeam - inari|r", file = "Beam.ogg" },
+    { name = "|cfff47c9bBehind - inari|r", file = "Behind.ogg" },
+    { name = "|cfff47c9bBloodlust - inari|r", file = "Bloodlust.ogg" },
+    { name = "|cfff47c9bBomb - inari|r", file = "Bomb.ogg" },
+    { name = "|cfff47c9bBreath - inari|r", file = "Breath.ogg" },
+    { name = "|cfff47c9bBuff - inari|r", file = "Buff.ogg" },
+    { name = "|cfff47c9bCC - inari|r", file = "CC.ogg" },
+    { name = "|cfff47c9bCharge - inari|r", file = "Charge.ogg" },
+    { name = "|cfff47c9bClear In - inari|r", file = "ClearIn.ogg" },
+    { name = "|cfff47c9bClear - inari|r", file = "Clear.ogg" },
+    { name = "|cfff47c9bCollect - inari|r", file = "Collect.ogg" },
+    { name = "|cfff47c9bCombat - inari|r", file = "Combat.ogg" },
+    { name = "|cfff47c9bDance - inari|r", file = "Dance.ogg" },
+    { name = "|cfff47c9bDebuff - inari|r", file = "Debuff.ogg" },
+    { name = "|cfff47c9bDestroy - inari|r", file = "Destroy.ogg" },
+    { name = "|cfff47c9bDispell - inari|r", file = "Dispell.ogg" },
+    { name = "|cfff47c9bDodge Inc - inari|r", file = "DodgeInc.ogg" },
+    { name = "|cfff47c9bDodge - inari|r", file = "Dodge.ogg" },
+    { name = "|cfff47c9bDot - inari|r", file = "Dot.ogg" },
+    { name = "|cfff47c9bExternal - inari|r", file = "External.ogg" },
+    { name = "|cfff47c9bFixate - inari|r", file = "Fixate.ogg" },
+    { name = "|cfff47c9bFreedom - inari|r", file = "Freedom.ogg" },
+    { name = "|cfff47c9bFrontal - inari|r", file = "Frontal.ogg" },
+    { name = "|cfff47c9bGreen - inari|r", file = "Green.ogg" },
+    { name = "|cfff47c9bHide - inari|r", file = "Hide.ogg" },
+    { name = "|cfff47c9bHigh Stacks - inari|r", file = "HighStacks.ogg" },
+    { name = "|cfff47c9bImmune - inari|r", file = "Immune.ogg" },
+    { name = "|cfff47c9bIn - inari|r", file = "In.ogg" },
+    { name = "|cfff47c9bInc - inari|r", file = "Inc.ogg" },
+    { name = "|cfff47c9bInside - inari|r", file = "Inside.ogg" },
+    { name = "|cfff47c9bIntermission - inari|r", file = "Intermission.ogg" },
+    { name = "|cfff47c9bJump - inari|r", file = "Jump.ogg" },
+    { name = "|cfff47c9bKick - inari|r", file = "Kick.ogg" },
+    { name = "|cfff47c9bKnock - inari|r", file = "Knock.ogg" },
+    { name = "|cfff47c9bLeap - inari|r", file = "Leap.ogg" },
+    { name = "|cfff47c9bLeft - inari|r", file = "Left.ogg" },
+    { name = "|cfff47c9bLinked - inari|r", file = "Linked.ogg" },
+    { name = "|cfff47c9bLoS - inari|r", file = "LoS.ogg" },
+    { name = "|cfff47c9bMelee - inari|r", file = "Melee.ogg" },
+    { name = "|cfff47c9bMount - inari|r", file = "Mount.ogg" },
+    { name = "|cfff47c9bMove - inari|r", file = "Move.ogg" },
+    { name = "|cfff47c9bNext - inari|r", file = "Next.ogg" },
+    { name = "|cfff47c9bNuke - inari|r", file = "Nuke.ogg" },
+    { name = "|cfff47c9bOrb - inari|r", file = "Orb.ogg" },
+    { name = "|cfff47c9bOrbs - inari|r", file = "Orbs.ogg" },
+    { name = "|cfff47c9bOut - inari|r", file = "Out.ogg" },
+    { name = "|cfff47c9bOutrange - inari|r", file = "Outrange.ogg" },
+    { name = "|cfff47c9bPersonal - inari|r", file = "Personal.ogg" },
+    { name = "|cfff47c9bPlatform - inari|r", file = "Platform.ogg" },
+    { name = "|cfff47c9bPot - inari|r", file = "Pot.ogg" },
+    { name = "|cfff47c9bProc - inari|r", file = "Proc.ogg" },
+    { name = "|cfff47c9bPull - inari|r", file = "Pull.ogg" },
+    { name = "|cfff47c9bPush - inari|r", file = "Push.ogg" },
+    { name = "|cfff47c9bRanged - inari|r", file = "Ranged.ogg" },
+    { name = "|cfff47c9bReady - inari|r", file = "Ready.ogg" },
+    { name = "|cfff47c9bRe-buff - inari|r", file = "Re-buff.ogg" },
+    { name = "|cfff47c9bRed - inari|r", file = "Red.ogg" },
+    { name = "|cfff47c9bReflect - inari|r", file = "Reflect.ogg" },
+    { name = "|cfff47c9bRight - inari|r", file = "Right.ogg" },
+    { name = "|cfff47c9bRun - inari|r", file = "Run.ogg" },
+    { name = "|cfff47c9bSac - inari|r", file = "Sac.ogg" },
+    { name = "|cfff47c9bShield - inari|r", file = "Shield.ogg" },
+    { name = "|cfff47c9bSoak - inari|r", file = "Soak.ogg" },
+    { name = "|cfff47c9bSpike - inari|r", file = "Spike.ogg" },
+    { name = "|cfff47c9bSpread - inari|r", file = "Spread.ogg" },
+    { name = "|cfff47c9bStack - inari|r", file = "Stack.ogg" },
+    { name = "|cfff47c9bStop - inari|r", file = "Stop.ogg" },
+    { name = "|cfff47c9bStop Cast - inari|r", file = "StopCast.ogg" },
+    { name = "|cfff47c9bSwap - inari|r", file = "Swap.ogg" },
+    { name = "|cfff47c9bSwitch - inari|r", file = "Switch.ogg" },
+    { name = "|cfff47c9bTaunt - inari|r", file = "Taunt.ogg" },
+    { name = "|cfff47c9bTotem - inari|r", file = "Totem.ogg" },
+    { name = "|cfff47c9bTrap - inari|r", file = "Trap.ogg" },
+    { name = "|cfff47c9bTurn - inari|r", file = "Turn.ogg" },
+    { name = "|cfff47c9bZone - inari|r", file = "Zone.ogg" },
 }
 -- Packed into tables to stay under Lua's 200-local main-chunk limit.
 local CONST = {
@@ -222,7 +222,7 @@ ns.EXBOSS_IMPORT_SLOT_KEYS = EXBOSS_IMPORT_SLOT_KEYS
 ns.EXBOSS_IMPORT_AUTHOR_SUFFIXES = EXBOSS_IMPORT_AUTHOR_SUFFIXES
 
 local function Print(msg)
-    DEFAULT_CHAT_FRAME:AddMessage("|cff0cd29fyuno:|r " .. tostring(msg))
+    DEFAULT_CHAT_FRAME:AddMessage("|cffe8a4b8inari:|r " .. tostring(msg))
 end
 
 local function RegisterFonts()
@@ -257,7 +257,7 @@ local function RegisterSounds()
     local LSM = LibStub and LibStub("LibSharedMedia-3.0", true)
     if not LSM then return false end
 
-    local base = "Interface\\AddOns\\yuno\\Media\\Sounds\\"
+    local base = "Interface\\AddOns\\inari\\Media\\Sounds\\"
     for _, sound in ipairs(SOUND_MEDIA) do
         LSM:Register(LSM.MediaType.SOUND, sound.name, base .. sound.file)
     end
@@ -269,13 +269,13 @@ end
 local function RegisterCountdownVoice()
     if State.countdownRegistered then return true end
     if not BigWigsAPI or type(BigWigsAPI.RegisterCountdown) ~= "function" then return false end
-    if BigWigsAPI.HasCountdown and BigWigsAPI:HasCountdown("Yuno") then
+    if BigWigsAPI.HasCountdown and BigWigsAPI:HasCountdown("Inari") then
         State.countdownRegistered = true
         return true
     end
 
-    local base = "Interface\\AddOns\\yuno\\Media\\Countdown\\"
-    local ok, err = pcall(BigWigsAPI.RegisterCountdown, BigWigsAPI, "Yuno", "Yuno", {
+    local base = "Interface\\AddOns\\inari\\Media\\Countdown\\"
+    local ok, err = pcall(BigWigsAPI.RegisterCountdown, BigWigsAPI, "Inari", "Inari", {
         base .. "1.ogg",
         base .. "2.ogg",
         base .. "3.ogg",
@@ -298,7 +298,7 @@ end
 local function RegisterBarStyle()
     if State.barStyleRegistered then return true end
     if not BigWigsAPI or type(BigWigsAPI.RegisterBarStyle) ~= "function" then return false end
-    if BigWigsAPI.GetBarStyle and BigWigsAPI:GetBarStyle("yuno") then
+    if BigWigsAPI.GetBarStyle and BigWigsAPI:GetBarStyle("inari") then
         State.barStyleRegistered = true
         return true
     end
@@ -395,7 +395,7 @@ local function RegisterBarStyle()
         bar.candyBarDuration:SetPoint("BOTTOMRIGHT", statusbar, "TOPRIGHT", -2, -7)
     end
 
-    local ok, err = pcall(BigWigsAPI.RegisterBarStyle, BigWigsAPI, "yuno", {
+    local ok, err = pcall(BigWigsAPI.RegisterBarStyle, BigWigsAPI, "inari", {
         apiVersion = 1,
         version = 11,
         barHeight = 20,
@@ -410,7 +410,7 @@ local function RegisterBarStyle()
         GetSpacing = function(bar) return bar:GetHeight() + 4 end,
         ApplyStyle = styleBar,
         BarStopped = removeStyle,
-        GetStyleName = function() return "yuno" end,
+        GetStyleName = function() return "inari" end,
     })
     if not ok then
         if type(err) == "string" and err:find("already exist", 1, true) then
@@ -495,7 +495,7 @@ local FPS_CVARS = {
     { "maxFPSBk",                   "30" },
 }
 
-local YUNO_GRAPHICS_CVARS = {
+local INARI_GRAPHICS_CVARS = {
     { "graphicsShadowQuality",      "2" },
     { "graphicsLiquidDetail",       "1" },
     { "graphicsParticleDensity",    "5" },
@@ -516,9 +516,9 @@ local YUNO_GRAPHICS_CVARS = {
 ns.BASE_CVARS = BASE_CVARS
 ns.FLOATING_COMBAT_TEXT_CVARS = FLOATING_COMBAT_TEXT_CVARS
 ns.FPS_CVARS = FPS_CVARS
-ns.YUNO_GRAPHICS_CVARS = YUNO_GRAPHICS_CVARS
+ns.INARI_GRAPHICS_CVARS = INARI_GRAPHICS_CVARS
 
-local function GetYunoCVar(name)
+local function GetInariCVar(name)
     if C_CVar and C_CVar.GetCVar then
         local value = C_CVar.GetCVar(name)
         if value ~= nil then return value end
@@ -532,7 +532,7 @@ local function GetYunoCVar(name)
     return nil
 end
 
-local function SetYunoCVar(name, value)
+local function SetInariCVar(name, value)
     if InCombatLockdown and InCombatLockdown() then return false end
 
     local text = tostring(value)
@@ -544,7 +544,7 @@ local function SetYunoCVar(name, value)
         ok = pcall(C_CVar.SetCVar, name, text)
     end
 
-    return ok and GetYunoCVar(name) ~= nil
+    return ok and GetInariCVar(name) ~= nil
 end
 
 local function ApplyCVarTable(cvars)
@@ -559,7 +559,7 @@ local function ApplyCVarTable(cvars)
             name, value = key, entry
         end
 
-        if SetYunoCVar(name, value) then
+        if SetInariCVar(name, value) then
             applied = applied + 1
         else
             skipped = skipped + 1
@@ -571,14 +571,14 @@ end
 
 local function ApplyFPSSettings()
     local applied, skipped = ApplyCVarTable(FPS_CVARS)
-    if type(YunoDB) == "table" then YunoDB.graphicsPreset = "fps" end
+    if type(InariDB) == "table" then InariDB.graphicsPreset = "fps" end
 
     return applied, skipped
 end
 
-local function ApplyYunoGraphicsSettings()
-    local applied, skipped = ApplyCVarTable(YUNO_GRAPHICS_CVARS)
-    if type(YunoDB) == "table" then YunoDB.graphicsPreset = "yuno" end
+local function ApplyInariGraphicsSettings()
+    local applied, skipped = ApplyCVarTable(INARI_GRAPHICS_CVARS)
+    if type(InariDB) == "table" then InariDB.graphicsPreset = "inari" end
     return applied, skipped
 end
 
@@ -587,8 +587,8 @@ local function ApplyFloatingCombatText(value)
     for _, name in ipairs(FLOATING_COMBAT_TEXT_CVARS) do
         cvars[name] = value
     end
-    if type(YunoDB) == "table" then
-        YunoDB.floatingCombatTextPreset = tonumber(value) == 1 and "enabled" or "disabled"
+    if type(InariDB) == "table" then
+        InariDB.floatingCombatTextPreset = tonumber(value) == 1 and "enabled" or "disabled"
     end
 
     return ApplyCVarTable(cvars)
@@ -619,7 +619,7 @@ local function CopyPlainTable(src, dest)
     return dest
 end
 
-local function ApplyYunoUIScale(applyLive)
+local function ApplyInariUIScale(applyLive)
     TryLoadAddon("EllesmereUI")
 
     if type(EllesmereUIDB) ~= "table" then EllesmereUIDB = {} end
@@ -627,8 +627,8 @@ local function ApplyYunoUIScale(applyLive)
     EllesmereUIDB.ppUIScaleAuto = false
     EllesmereUIDB.ppUIScale = CONST.UI_SCALE
 
-    SetYunoCVar("useUiScale", 1)
-    SetYunoCVar("uiScale", CONST.UI_SCALE)
+    SetInariCVar("useUiScale", 1)
+    SetInariCVar("uiScale", CONST.UI_SCALE)
 
     if not applyLive then return end
 
@@ -660,14 +660,14 @@ end
 
 local function GetLayoutAspect()
     EnsureDB()
-    return YunoDB.layoutAspect == "21" and "21" or "16"
+    return InariDB.layoutAspect == "21" and "21" or "16"
 end
 
 local function SetLayoutAspect(value)
     EnsureDB()
     local aspect = NormalizeLayoutAspect(value)
     if not aspect then return nil end
-    YunoDB.layoutAspect = aspect
+    InariDB.layoutAspect = aspect
     return aspect
 end
 
@@ -678,70 +678,70 @@ end
 
 local function GetEllesmereLayoutProfileName(aspect)
     aspect = aspect or GetLayoutAspect()
-    return aspect == "21" and "yuno21:9" or "yuno16:9"
+    return aspect == "21" and "inari21:9" or "inari16:9"
 end
 
 EnsureDB = function()
-    if type(YunoDB) ~= "table" then YunoDB = {} end
-    if YunoDB.autoPresetVersion ~= 1 then
-        YunoDB.enabled = true
-        YunoDB.classBackground = true
-        YunoDB.darkOpacity = true
-        YunoDB.forceDarkMode = true
-        YunoDB.appearanceMode = "dark"
-        YunoDB.forceEUITheme = true
-        YunoDB.forceOpacity = true
-        YunoDB.forceChatSidebarRight = true
-        YunoDB.disableFriendlyPlayerNameplates = true
-        YunoDB.fadeIdlePlayerAndCooldowns = false
-        YunoDB.disableEllesmereActionBarPaging = true
-        YunoDB.healthBarOpacity = 85
-        YunoDB.tint = 0.75
-        YunoDB.autoPresetVersion = 1
+    if type(InariDB) ~= "table" then InariDB = {} end
+    if InariDB.autoPresetVersion ~= 1 then
+        InariDB.enabled = true
+        InariDB.classBackground = true
+        InariDB.darkOpacity = true
+        InariDB.forceDarkMode = true
+        InariDB.appearanceMode = "dark"
+        InariDB.forceEUITheme = true
+        InariDB.forceOpacity = true
+        InariDB.forceChatSidebarRight = true
+        InariDB.disableFriendlyPlayerNameplates = true
+        InariDB.fadeIdlePlayerAndCooldowns = false
+        InariDB.disableEllesmereActionBarPaging = true
+        InariDB.healthBarOpacity = 85
+        InariDB.tint = 0.75
+        InariDB.autoPresetVersion = 1
     end
-    if YunoDB.enabled == nil then YunoDB.enabled = true end
-    if YunoDB.classBackground == nil then YunoDB.classBackground = true end
-    if YunoDB.darkOpacity == nil then YunoDB.darkOpacity = true end
-    if YunoDB.forceDarkMode == nil then YunoDB.forceDarkMode = true end
-    if YunoDB.appearanceMode ~= "dark" and YunoDB.appearanceMode ~= "class" then
-        YunoDB.appearanceMode = YunoDB.forceDarkMode and "dark" or "class"
+    if InariDB.enabled == nil then InariDB.enabled = true end
+    if InariDB.classBackground == nil then InariDB.classBackground = true end
+    if InariDB.darkOpacity == nil then InariDB.darkOpacity = true end
+    if InariDB.forceDarkMode == nil then InariDB.forceDarkMode = true end
+    if InariDB.appearanceMode ~= "dark" and InariDB.appearanceMode ~= "class" then
+        InariDB.appearanceMode = InariDB.forceDarkMode and "dark" or "class"
     end
-    if YunoDB.forceEUITheme == nil then YunoDB.forceEUITheme = true end
-    if YunoDB.forceOpacity == nil then YunoDB.forceOpacity = true end
-    if YunoDB.forceChatSidebarRight == nil then YunoDB.forceChatSidebarRight = true end
-    if YunoDB.disableFriendlyPlayerNameplates == nil then YunoDB.disableFriendlyPlayerNameplates = true end
-    if YunoDB.fadeIdlePlayerAndCooldowns == nil then YunoDB.fadeIdlePlayerAndCooldowns = false end
-    if YunoDB.disableEllesmereActionBarPaging == nil then YunoDB.disableEllesmereActionBarPaging = true end
-    if type(YunoDB.healthBarOpacity) ~= "number" then YunoDB.healthBarOpacity = 85 end
-    if type(YunoDB.tint) ~= "number" then YunoDB.tint = 0.75 end
-    if YunoDB.frameShadows == nil then YunoDB.frameShadows = true end
-    if type(YunoDB.frameShadowStrength) ~= "number" then YunoDB.frameShadowStrength = 70 end
-    if YunoDB.frameShadowStrength < 0 then YunoDB.frameShadowStrength = 0 end
-    if YunoDB.frameShadowStrength > 100 then YunoDB.frameShadowStrength = 100 end
-    if type(YunoDB.profilePromptApplied) ~= "table" then YunoDB.profilePromptApplied = {} end
-    if type(YunoDB.profilePromptDismissed) ~= "table" then YunoDB.profilePromptDismissed = {} end
-    if YunoDB.profilePromptEnabled == nil then YunoDB.profilePromptEnabled = true end
-    if YunoDB.layoutAspect ~= "16" and YunoDB.layoutAspect ~= "21" then
-        YunoDB.layoutAspect = DetectLayoutAspect()
+    if InariDB.forceEUITheme == nil then InariDB.forceEUITheme = true end
+    if InariDB.forceOpacity == nil then InariDB.forceOpacity = true end
+    if InariDB.forceChatSidebarRight == nil then InariDB.forceChatSidebarRight = true end
+    if InariDB.disableFriendlyPlayerNameplates == nil then InariDB.disableFriendlyPlayerNameplates = true end
+    if InariDB.fadeIdlePlayerAndCooldowns == nil then InariDB.fadeIdlePlayerAndCooldowns = false end
+    if InariDB.disableEllesmereActionBarPaging == nil then InariDB.disableEllesmereActionBarPaging = true end
+    if type(InariDB.healthBarOpacity) ~= "number" then InariDB.healthBarOpacity = 85 end
+    if type(InariDB.tint) ~= "number" then InariDB.tint = 0.75 end
+    if InariDB.frameShadows == nil then InariDB.frameShadows = true end
+    if type(InariDB.frameShadowStrength) ~= "number" then InariDB.frameShadowStrength = 70 end
+    if InariDB.frameShadowStrength < 0 then InariDB.frameShadowStrength = 0 end
+    if InariDB.frameShadowStrength > 100 then InariDB.frameShadowStrength = 100 end
+    if type(InariDB.profilePromptApplied) ~= "table" then InariDB.profilePromptApplied = {} end
+    if type(InariDB.profilePromptDismissed) ~= "table" then InariDB.profilePromptDismissed = {} end
+    if InariDB.profilePromptEnabled == nil then InariDB.profilePromptEnabled = true end
+    if InariDB.layoutAspect ~= "16" and InariDB.layoutAspect ~= "21" then
+        InariDB.layoutAspect = DetectLayoutAspect()
     end
-    if type(YunoDB.importedProfileVersions) ~= "table" then YunoDB.importedProfileVersions = {} end
-    if type(YunoDB.profileUpdateDismissed) ~= "table" then YunoDB.profileUpdateDismissed = {} end
-    if YunoDB.profileUpdateEnabled == nil then YunoDB.profileUpdateEnabled = true end
-    if YunoDB.graphicsPreset ~= "fps" and YunoDB.graphicsPreset ~= "yuno" then YunoDB.graphicsPreset = nil end
-    if YunoDB.floatingCombatTextPreset ~= "enabled" and YunoDB.floatingCombatTextPreset ~= "disabled" then YunoDB.floatingCombatTextPreset = nil end
-    YunoDB.qol = nil
-    if YunoDB.healthBarOpacity < 0 then YunoDB.healthBarOpacity = 0 end
-    if YunoDB.healthBarOpacity > 100 then YunoDB.healthBarOpacity = 100 end
-    if YunoDB.tint < 0 then YunoDB.tint = 0 end
-    if YunoDB.tint > 1 then YunoDB.tint = 1 end
-    if type(YunoDB.lastConfigPage) ~= "string" then YunoDB.lastConfigPage = "home" end
-    if type(YunoDB.portraits) ~= "table" then YunoDB.portraits = {} end
-    local portraits = YunoDB.portraits
-    if YunoDB.extrasDefaultsVersion ~= 2 then
-        YunoDB.disableEllesmereActionBarPaging = true
-        YunoDB.forceChatSidebarRight = true
-        YunoDB.disableFriendlyPlayerNameplates = true
-        YunoDB.fadeIdlePlayerAndCooldowns = false
+    if type(InariDB.importedProfileVersions) ~= "table" then InariDB.importedProfileVersions = {} end
+    if type(InariDB.profileUpdateDismissed) ~= "table" then InariDB.profileUpdateDismissed = {} end
+    if InariDB.profileUpdateEnabled == nil then InariDB.profileUpdateEnabled = true end
+    if InariDB.graphicsPreset ~= "fps" and InariDB.graphicsPreset ~= "inari" then InariDB.graphicsPreset = nil end
+    if InariDB.floatingCombatTextPreset ~= "enabled" and InariDB.floatingCombatTextPreset ~= "disabled" then InariDB.floatingCombatTextPreset = nil end
+    InariDB.qol = nil
+    if InariDB.healthBarOpacity < 0 then InariDB.healthBarOpacity = 0 end
+    if InariDB.healthBarOpacity > 100 then InariDB.healthBarOpacity = 100 end
+    if InariDB.tint < 0 then InariDB.tint = 0 end
+    if InariDB.tint > 1 then InariDB.tint = 1 end
+    if type(InariDB.lastConfigPage) ~= "string" then InariDB.lastConfigPage = "home" end
+    if type(InariDB.portraits) ~= "table" then InariDB.portraits = {} end
+    local portraits = InariDB.portraits
+    if InariDB.extrasDefaultsVersion ~= 2 then
+        InariDB.disableEllesmereActionBarPaging = true
+        InariDB.forceChatSidebarRight = true
+        InariDB.disableFriendlyPlayerNameplates = true
+        InariDB.fadeIdlePlayerAndCooldowns = false
         portraits.enabled = true
         portraits.size = 52
         portraits.zoom = 0.22
@@ -755,7 +755,7 @@ EnsureDB = function()
         portraits.target.anchor = "RIGHT"
         portraits.target.x = 0
         portraits.target.y = 0
-        YunoDB.extrasDefaultsVersion = 2
+        InariDB.extrasDefaultsVersion = 2
     end
     if portraits.enabled == nil then portraits.enabled = true end
     if type(portraits.size) ~= "number" then portraits.size = 52 end
@@ -779,14 +779,14 @@ end
 
 local function ApplyFriendlyPlayerNameplatePreference()
     EnsureDB()
-    if not YunoDB.disableFriendlyPlayerNameplates then return false end
+    if not InariDB.disableFriendlyPlayerNameplates then return false end
 
     local changed = false
-    if GetYunoCVar("nameplateShowFriendlyPlayers") ~= "0" then
-        changed = SetYunoCVar("nameplateShowFriendlyPlayers", 0) or changed
+    if GetInariCVar("nameplateShowFriendlyPlayers") ~= "0" then
+        changed = SetInariCVar("nameplateShowFriendlyPlayers", 0) or changed
     end
-    if GetYunoCVar("nameplateShowFriends") ~= "0" then
-        changed = SetYunoCVar("nameplateShowFriends", 0) or changed
+    if GetInariCVar("nameplateShowFriends") ~= "0" then
+        changed = SetInariCVar("nameplateShowFriends", 0) or changed
     end
 
     return changed
@@ -802,7 +802,7 @@ local function HookFriendlyPlayerNameplateCVars()
     if State.friendlyNameplateCVarHooked or not hooksecurefunc then return end
 
     local function WatchFriendlyNameplateCVar(name, value)
-        if type(YunoDB) ~= "table" or not YunoDB.disableFriendlyPlayerNameplates then return end
+        if type(InariDB) ~= "table" or not InariDB.disableFriendlyPlayerNameplates then return end
         if name ~= "nameplateShowFriendlyPlayers" and name ~= "nameplateShowFriends" then return end
         if tostring(value) == "0" then return end
         ScheduleFriendlyPlayerNameplatePreference(0)
@@ -827,9 +827,9 @@ local function RestoreIdleFadeFrames()
     idleFadeApplying = true
     for frame in pairs(State.idleFadeTouchedFrames) do
         if frame and type(frame.SetAlpha) == "function" then
-            local base = frame._yunoIdleFadeBaseAlpha or 1
-            frame._yunoIdleFaded = nil
-            frame._yunoIdleFadeBaseAlpha = nil
+            local base = frame._inariIdleFadeBaseAlpha or 1
+            frame._inariIdleFaded = nil
+            frame._inariIdleFadeBaseAlpha = nil
             pcall(frame.SetAlpha, frame, base)
             restored = true
         end
@@ -845,8 +845,8 @@ end
 
 local function ShouldIdleFade()
     EnsureDB()
-    if not YunoDB.enabled then return false end
-    if YunoDB.fadeIdlePlayerAndCooldowns ~= true then return false end
+    if not InariDB.enabled then return false end
+    if InariDB.fadeIdlePlayerAndCooldowns ~= true then return false end
 
     local inInstance, instanceType = IsInInstance()
     if inInstance and (instanceType == "party" or instanceType == "raid") then return false end
@@ -892,7 +892,7 @@ local function ForEachIdleFadeFrame(callback)
 end
 
 local function ReassertIdleFade(frame, requestedAlpha)
-    if idleFadeApplying or not frame or not frame._yunoIdleFaded then return end
+    if idleFadeApplying or not frame or not frame._inariIdleFaded then return end
     if not ShouldIdleFade() then return end
     requestedAlpha = tonumber(requestedAlpha)
     if not requestedAlpha then
@@ -900,7 +900,7 @@ local function ReassertIdleFade(frame, requestedAlpha)
     end
     if requestedAlpha <= 0 then return end
     if math.abs(requestedAlpha - CONST.idleFadeAlpha) <= 0.001 then return end
-    frame._yunoIdleFadeBaseAlpha = requestedAlpha
+    frame._inariIdleFadeBaseAlpha = requestedAlpha
     idleFadeApplying = true
     pcall(frame.SetAlpha, frame, CONST.idleFadeAlpha)
     idleFadeApplying = false
@@ -927,20 +927,20 @@ local function ApplyIdleFadeState()
         HookIdleFadeAlpha(frame)
         local alpha = frame:GetAlpha() or 1
         if alpha <= 0 then
-            if frame._yunoIdleFaded then
+            if frame._inariIdleFaded then
                 changed = true
             end
-            frame._yunoIdleFaded = nil
-            frame._yunoIdleFadeBaseAlpha = nil
+            frame._inariIdleFaded = nil
+            frame._inariIdleFadeBaseAlpha = nil
             State.idleFadeTouchedFrames[frame] = nil
             return
         end
 
-        if not frame._yunoIdleFaded or math.abs(alpha - CONST.idleFadeAlpha) > 0.001 then
+        if not frame._inariIdleFaded or math.abs(alpha - CONST.idleFadeAlpha) > 0.001 then
             changed = true
-            frame._yunoIdleFadeBaseAlpha = alpha
+            frame._inariIdleFadeBaseAlpha = alpha
         end
-        frame._yunoIdleFaded = true
+        frame._inariIdleFaded = true
         State.idleFadeTouchedFrames[frame] = true
         frame:SetAlpha(CONST.idleFadeAlpha)
     end)
@@ -953,7 +953,7 @@ end
 local function UpdateIdleFadeController()
     EnsureDB()
     if State.idleFadeFrame then State.idleFadeFrame:SetScript("OnUpdate", nil) end
-    if YunoDB.enabled and YunoDB.fadeIdlePlayerAndCooldowns == true then
+    if InariDB.enabled and InariDB.fadeIdlePlayerAndCooldowns == true then
         ApplyIdleFadeState()
     else
         RestoreIdleFadeFrames()
@@ -1014,7 +1014,7 @@ local function GetEllesmereRaidFramesProfile()
     return GetEllesmereAddonProfile("EllesmereUIRaidFrames")
 end
 
-local function GetYunoCharacterKey()
+local function GetInariCharacterKey()
     local name = UnitName and UnitName("player") or "Unknown"
     local realm = GetRealmName and GetRealmName() or "Unknown"
     return tostring(name or "Unknown") .. " - " .. tostring(realm or "Unknown")
@@ -1022,41 +1022,41 @@ end
 
 local function MarkProfilePromptApplied()
     EnsureDB()
-    YunoDB.profilePromptApplied[GetYunoCharacterKey()] = CONST.profilePromptVersion
-    YunoDB.profilePromptDismissed[GetYunoCharacterKey()] = nil
+    InariDB.profilePromptApplied[GetInariCharacterKey()] = CONST.profilePromptVersion
+    InariDB.profilePromptDismissed[GetInariCharacterKey()] = nil
 end
 
 local function MarkInstallerCompleted()
     EnsureDB()
-    YunoDB.installerCompletedVersion = CONST.profilePromptVersion
-    YunoDB.installerPendingFinalScale = nil
+    InariDB.installerCompletedVersion = CONST.profilePromptVersion
+    InariDB.installerPendingFinalScale = nil
 end
 
 local function MarkInstallerPendingFinalScale()
     EnsureDB()
-    YunoDB.installerPendingFinalScale = true
+    InariDB.installerPendingFinalScale = true
 end
 
 local function MarkProfilePromptDismissed()
     EnsureDB()
-    YunoDB.profilePromptDismissed[GetYunoCharacterKey()] = CONST.profilePromptVersion
+    InariDB.profilePromptDismissed[GetInariCharacterKey()] = CONST.profilePromptVersion
 end
 
 local function ApplySignature()
     EnsureDB()
     return table.concat({
-        tostring(YunoDB.enabled),
-        tostring(YunoDB.appearanceMode),
-        tostring(YunoDB.forceEUITheme),
-        tostring(YunoDB.classBackground),
-        tostring(YunoDB.healthBarOpacity),
-        tostring(YunoDB.tint),
-        tostring(YunoDB.frameShadows),
-        tostring(YunoDB.frameShadowStrength),
-        tostring(YunoDB.disableEllesmereActionBarPaging),
-        tostring(YunoDB.forceChatSidebarRight),
-        tostring(YunoDB.fadeIdlePlayerAndCooldowns),
-        tostring(YunoDB.disableFriendlyPlayerNameplates),
+        tostring(InariDB.enabled),
+        tostring(InariDB.appearanceMode),
+        tostring(InariDB.forceEUITheme),
+        tostring(InariDB.classBackground),
+        tostring(InariDB.healthBarOpacity),
+        tostring(InariDB.tint),
+        tostring(InariDB.frameShadows),
+        tostring(InariDB.frameShadowStrength),
+        tostring(InariDB.disableEllesmereActionBarPaging),
+        tostring(InariDB.forceChatSidebarRight),
+        tostring(InariDB.fadeIdlePlayerAndCooldowns),
+        tostring(InariDB.disableFriendlyPlayerNameplates),
     }, "|")
 end
 
@@ -1071,7 +1071,7 @@ end
 local function PlayerFrameStillPatched()
     local frame = _G[FRAME_NAMES.player]
     local health = frame and frame.Health
-    return health and health._yunoPostUpdateColor ~= nil and health.PostUpdateColor == health._yunoPostUpdateColor
+    return health and health._inariPostUpdateColor ~= nil and health.PostUpdateColor == health._inariPostUpdateColor
 end
 
 local function ApplyAll(force)
@@ -1183,7 +1183,7 @@ end
 
 local function ShouldOpenFreshInstaller()
     EnsureDB()
-    return YunoDB.installerPendingFinalScale == true or YunoDB.installerCompletedVersion ~= CONST.profilePromptVersion
+    return InariDB.installerPendingFinalScale == true or InariDB.installerCompletedVersion ~= CONST.profilePromptVersion
 end
 
 local function ScheduleFreshInstallerOpen()
@@ -1228,30 +1228,32 @@ local function PrintDamageMeterPositions()
 end
 
 local function ShowHelp()
-    Print("enabled=" .. tostring(YunoDB.enabled) ..
+    Print("enabled=" .. tostring(InariDB.enabled) ..
         ", appearance=" .. ns.GetAppearanceMode() ..
-        ", bg=" .. tostring(YunoDB.classBackground) ..
-        ", dark=" .. tostring(YunoDB.forceDarkMode) ..
-        ", euiTheme=" .. tostring(YunoDB.forceEUITheme) ..
-        ", friendlyNameplatesOff=" .. tostring(YunoDB.disableFriendlyPlayerNameplates) ..
-        ", idleFade=" .. tostring(YunoDB.fadeIdlePlayerAndCooldowns) ..
-        ", formPaging=" .. (YunoDB.disableEllesmereActionBarPaging and "off" or "on") ..
-        ", chatButtons=" .. (YunoDB.forceChatSidebarRight and "right" or "left") ..
-        ", opacity=" .. tostring(YunoDB.healthBarOpacity or 85) .. "%" ..
-        ", tint=" .. math.floor((YunoDB.tint or 0.75) * 100 + 0.5) .. "%" ..
-        ", shadows=" .. tostring(YunoDB.frameShadows == true) ..
-        " " .. tostring(YunoDB.frameShadowStrength or 70) .. "%" ..
+        ", bg=" .. tostring(InariDB.classBackground) ..
+        ", dark=" .. tostring(InariDB.forceDarkMode) ..
+        ", euiTheme=" .. tostring(InariDB.forceEUITheme) ..
+        ", friendlyNameplatesOff=" .. tostring(InariDB.disableFriendlyPlayerNameplates) ..
+        ", idleFade=" .. tostring(InariDB.fadeIdlePlayerAndCooldowns) ..
+        ", formPaging=" .. (InariDB.disableEllesmereActionBarPaging and "off" or "on") ..
+        ", chatButtons=" .. (InariDB.forceChatSidebarRight and "right" or "left") ..
+        ", opacity=" .. tostring(InariDB.healthBarOpacity or 85) .. "%" ..
+        ", tint=" .. math.floor((InariDB.tint or 0.75) * 100 + 0.5) .. "%" ..
+        ", shadows=" .. tostring(InariDB.frameShadows == true) ..
+        " " .. tostring(InariDB.frameShadowStrength or 70) .. "%" ..
         ", layout=" .. GetLayoutAspectLabel())
-    Print("/yuno opens settings, /yuno help shows this list")
-    Print("general: /yuno on|off, /yuno apply, /yuno media")
-    Print("appearance: /yuno appearance dark|class, /yuno layout 16|21, /yuno bg on|off, /yuno theme on|off, /yuno tint 75, /yuno opacity 85, /yuno shadows on|off")
-    Print("extras: /yuno idlefade on|off, /yuno paging on|off, /yuno chat right|left, /yuno portraits")
-    Print("setup: /yuno install [ellesmere [16|21]|bigwigs|editmode|exboss|sarena|baganator|settings], /yuno cvars, /yuno fct on|off, /yuno fps, /yuno graphics yuno")
-    Print("profiles: /yuno profiles, /yuno cdm import")
+    Print("/inari or /iui opens settings, /inari help shows this list")
+    Print("general: /inari on|off, /inari apply, /inari media")
+    Print("appearance: /inari appearance dark|class, /inari layout 16|21, /inari bg on|off, /inari theme on|off, /inari tint 75, /inari opacity 85, /inari shadows on|off")
+    Print("extras: /inari idlefade on|off, /inari paging on|off, /inari chat right|left, /inari portraits")
+    Print("setup: /inari install [ellesmere [16|21]|bigwigs|editmode|exboss|sarena|baganator|settings], /inari cvars, /inari fct on|off, /inari fps, /inari graphics inari")
+    Print("profiles: /inari profiles, /inari cdm import")
 end
 
-SLASH_YUNO1 = "/yuno"
-SlashCmdList.YUNO = function(msg)
+SLASH_INARI1 = "/inari"
+SLASH_INARI2 = "/iui"
+SLASH_INARI3 = "/inariui"
+SlashCmdList.INARI = function(msg)
     EnsureDB()
     msg = (msg or ""):lower():match("^%s*(.-)%s*$")
     local cmd, arg = msg:match("^(%S+)%s*(.*)$")
@@ -1261,36 +1263,36 @@ SlashCmdList.YUNO = function(msg)
     elseif cmd == "help" or cmd == "status" then
         ShowHelp()
     elseif cmd == "on" then
-        YunoDB.enabled = true
+        InariDB.enabled = true
         ScheduleApply()
         UpdateIdleFadeController()
         Print("enabled")
     elseif cmd == "off" then
-        YunoDB.enabled = false
+        InariDB.enabled = false
         ns.RestoreAll()
         UpdateIdleFadeController()
         Print("disabled")
     elseif cmd == "bg" then
         if arg == "on" or arg == "1" or arg == "true" then
-            YunoDB.classBackground = true
+            InariDB.classBackground = true
             Print("class background enabled")
         elseif arg == "off" or arg == "0" or arg == "false" then
-            YunoDB.classBackground = false
+            InariDB.classBackground = false
             Print("class background disabled")
         else
-            Print("usage: /yuno bg on|off")
+            Print("usage: /inari bg on|off")
             return
         end
         ScheduleApply()
     elseif cmd == "appearance" or cmd == "mode" then
         if arg == "dark" or arg == "darkmode" then
-            ns.SetYunoAppearanceMode("dark")
+            ns.SetInariAppearanceMode("dark")
             Print("appearance set to dark mode")
         elseif arg == "class" or arg == "classcolored" or arg == "class-coloured" or arg == "class-colored" then
-            ns.SetYunoAppearanceMode("class")
+            ns.SetInariAppearanceMode("class")
             Print("appearance set to class colored")
         else
-            Print("usage: /yuno appearance dark|class")
+            Print("usage: /inari appearance dark|class")
             return
         end
     elseif cmd == "layout" or cmd == "aspect" then
@@ -1299,7 +1301,7 @@ SlashCmdList.YUNO = function(msg)
         else
             local aspect = SetLayoutAspect(arg)
             if not aspect then
-                Print("usage: /yuno layout 16|21")
+                Print("usage: /inari layout 16|21")
                 return
             end
             if InCombatLockdown and InCombatLockdown() then
@@ -1322,54 +1324,54 @@ SlashCmdList.YUNO = function(msg)
         end
     elseif cmd == "dark" then
         if arg == "on" or arg == "1" or arg == "true" then
-            ns.SetYunoAppearanceMode("dark")
+            ns.SetInariAppearanceMode("dark")
             Print("appearance set to dark mode")
         elseif arg == "off" or arg == "0" or arg == "false" then
-            ns.SetYunoAppearanceMode("class")
+            ns.SetInariAppearanceMode("class")
             Print("appearance set to class colored")
         else
-            Print("usage: /yuno dark on|off")
+            Print("usage: /inari dark on|off")
             return
         end
     elseif cmd == "theme" then
         if arg == "on" or arg == "1" or arg == "true" then
-            YunoDB.forceEUITheme = true
+            InariDB.forceEUITheme = true
             ns.ApplyEllesmereThemeSettings(true, true)
             Print("EllesmereUI theme enforcement enabled")
         elseif arg == "off" or arg == "0" or arg == "false" then
-            YunoDB.forceEUITheme = false
+            InariDB.forceEUITheme = false
             Print("EllesmereUI theme enforcement disabled")
         else
-            Print("usage: /yuno theme on|off")
+            Print("usage: /inari theme on|off")
             return
         end
         ScheduleApply()
     elseif cmd == "idlefade" or cmd == "fade" then
         if arg == "on" or arg == "1" or arg == "true" then
-            YunoDB.fadeIdlePlayerAndCooldowns = true
+            InariDB.fadeIdlePlayerAndCooldowns = true
             UpdateIdleFadeController()
             Print("idle fade enabled")
         elseif arg == "off" or arg == "0" or arg == "false" then
-            YunoDB.fadeIdlePlayerAndCooldowns = false
+            InariDB.fadeIdlePlayerAndCooldowns = false
             UpdateIdleFadeController()
             Print("idle fade disabled")
         else
-            Print("usage: /yuno idlefade on|off")
+            Print("usage: /inari idlefade on|off")
             return
         end
     elseif cmd == "paging" or cmd == "actionbarpaging" or cmd == "barpaging" then
         if arg == "off" or arg == "0" or arg == "false" or arg == "disable" or arg == "disabled" then
-            YunoDB.disableEllesmereActionBarPaging = true
+            InariDB.disableEllesmereActionBarPaging = true
         elseif arg == "on" or arg == "1" or arg == "true" or arg == "enable" or arg == "enabled" then
-            YunoDB.disableEllesmereActionBarPaging = false
+            InariDB.disableEllesmereActionBarPaging = false
         else
-            Print("usage: /yuno paging on|off")
+            Print("usage: /inari paging on|off")
             return
         end
 
         local applied = ns.ApplyEllesmereActionBarPagingOverride()
         ScheduleApply()
-        local message = YunoDB.disableEllesmereActionBarPaging
+        local message = InariDB.disableEllesmereActionBarPaging
             and "form/stealth action bar paging disabled"
             or "form/stealth action bar paging enabled"
         if InCombatLockdown and InCombatLockdown() then
@@ -1380,15 +1382,15 @@ SlashCmdList.YUNO = function(msg)
         Print(message)
     elseif cmd == "chat" then
         if arg == "right" or arg == "on" or arg == "1" or arg == "true" then
-            YunoDB.forceChatSidebarRight = true
+            InariDB.forceChatSidebarRight = true
             ns.ApplyChatSettings()
             Print("chat buttons set to right")
         elseif arg == "left" or arg == "off" or arg == "0" or arg == "false" then
-            YunoDB.forceChatSidebarRight = false
+            InariDB.forceChatSidebarRight = false
             ns.ApplyChatSettings()
             Print("chat buttons set to left")
         else
-            Print("usage: /yuno chat right|left")
+            Print("usage: /inari chat right|left")
             return
         end
         ScheduleApply()
@@ -1396,7 +1398,7 @@ SlashCmdList.YUNO = function(msg)
         ns.ShowConfigFrame("extras")
     elseif cmd == "cdm" or cmd == "cooldowns" then
         if arg == "import" then
-            local ok, message = ns.ImportYunoCooldownLayouts()
+            local ok, message = ns.ImportInariCooldownLayouts()
             Print(message or (ok and "cooldown layouts imported" or "cooldown import failed"))
         else
             ns.ShowConfigFrame("cooldowns")
@@ -1409,7 +1411,7 @@ SlashCmdList.YUNO = function(msg)
             if rest ~= "" then
                 local aspect = SetLayoutAspect(rest)
                 if not aspect then
-                    Print("usage: /yuno install ellesmere [16|21]")
+                    Print("usage: /inari install ellesmere [16|21]")
                     return
                 end
             end
@@ -1417,14 +1419,14 @@ SlashCmdList.YUNO = function(msg)
             Print(message or (ok and "EllesmereUI imported" or "EllesmereUI import failed"))
         elseif arg == "bigwigs" or arg == "bw" then
             local ok, message = ns.ImportBigWigsProfile(function(accepted)
-                Print(accepted and "BigWigs profile imported as yuno" or "BigWigs import cancelled")
+                Print(accepted and "BigWigs profile imported as inari" or "BigWigs import cancelled")
             end)
             Print(message or (ok and "BigWigs import opened" or "BigWigs import failed"))
         elseif arg == "editmode" or arg == "edit" then
             local ok, message = ns.ImportEditModeLayout()
             Print(message or (ok and "Edit Mode imported" or "Edit Mode import failed"))
         elseif arg == "blinkii" or arg == "blinkiis" or arg == "portraits" then
-            Print("player and target portraits are built into yuno; Blinkii's Portraits is no longer required")
+            Print("player and target portraits are built into inari; Blinkii's Portraits is no longer required")
         elseif arg == "exboss" or arg == "exb" then
             local ok, message = ns.ImportEXBossProfile()
             Print(message or (ok and "EXBoss imported" or "EXBoss import failed"))
@@ -1460,7 +1462,7 @@ SlashCmdList.YUNO = function(msg)
         elseif arg == "off" or arg == "0" or arg == "false" or arg == "disable" then
             value = 0
         else
-            Print("usage: /yuno fct on|off")
+            Print("usage: /inari fct on|off")
             return
         end
         local applied, skipped = ApplyFloatingCombatText(value)
@@ -1468,9 +1470,9 @@ SlashCmdList.YUNO = function(msg)
         if skipped > 0 then message = message .. ", " .. skipped .. " skipped" end
         Print(message)
     elseif cmd == "fps" or cmd == "graphics" then
-        if cmd == "graphics" and (arg == "yuno" or arg == "yunos" or arg == "yuno's") then
-            local applied, skipped = ApplyYunoGraphicsSettings()
-            local message = "Yuno's graphics applied: " .. applied .. " CVars"
+        if cmd == "graphics" and (arg == "inari" or arg == "inaris" or arg == "inari's") then
+            local applied, skipped = ApplyInariGraphicsSettings()
+            local message = "Inari's graphics applied: " .. applied .. " CVars"
             if skipped > 0 then message = message .. ", " .. skipped .. " skipped" end
             Print(message)
             return
@@ -1483,26 +1485,26 @@ SlashCmdList.YUNO = function(msg)
     elseif cmd == "tint" then
         local value = tonumber(arg)
         if not value then
-            Print("usage: /yuno tint 75")
+            Print("usage: /inari tint 75")
             return
         end
         if value > 1 then value = value / 100 end
         if value < 0 then value = 0 end
         if value > 1 then value = 1 end
-        YunoDB.tint = value
+        InariDB.tint = value
         ScheduleApply()
         Print("class background tint set to " .. math.floor(value * 100 + 0.5) .. "%")
     elseif cmd == "opacity" then
         local value = tonumber(arg)
         if not value then
-            Print("usage: /yuno opacity 75")
+            Print("usage: /inari opacity 75")
             return
         end
         value = math.floor(value + 0.5)
         if value < 0 then value = 0 end
         if value > 100 then value = 100 end
-        YunoDB.healthBarOpacity = value
-        YunoDB.forceOpacity = true
+        InariDB.healthBarOpacity = value
+        InariDB.forceOpacity = true
         if ns.SetAllHealthOpacity(value) then
             ScheduleApply()
             ns.ReloadEllesmereFrames()
@@ -1512,21 +1514,21 @@ SlashCmdList.YUNO = function(msg)
         end
     elseif cmd == "shadows" or cmd == "shadow" or cmd == "frameshadows" then
         if arg == "on" or arg == "1" or arg == "true" then
-            YunoDB.frameShadows = true
+            InariDB.frameShadows = true
             Print("frame shadows enabled")
         elseif arg == "off" or arg == "0" or arg == "false" then
-            YunoDB.frameShadows = false
+            InariDB.frameShadows = false
             Print("frame shadows disabled")
         else
             local strength = tonumber(arg)
             if strength then
                 if strength < 0 then strength = 0 end
                 if strength > 100 then strength = 100 end
-                YunoDB.frameShadows = true
-                YunoDB.frameShadowStrength = strength
+                InariDB.frameShadows = true
+                InariDB.frameShadowStrength = strength
                 Print("shadow strength set to " .. tostring(strength) .. "%")
             else
-                Print("usage: /yuno shadows on|off|70")
+                Print("usage: /inari shadows on|off|70")
                 return
             end
         end
@@ -1537,7 +1539,7 @@ SlashCmdList.YUNO = function(msg)
         Print("patched " .. count .. " unit frame bars")
     elseif cmd == "fonts" or cmd == "media" then
         if RegisterMedia() then
-            Print("registered yuno fonts, statusbars, sounds, BigWigs countdown, and bar style")
+            Print("registered inari fonts, statusbars, sounds, BigWigs countdown, and bar style")
         else
             Print("LibSharedMedia-3.0 / BigWigs API was not available")
         end
@@ -1592,11 +1594,6 @@ local function Bootstrap(forceThemeLive, retry)
     ApplyAll(true)
     State.applyingBootstrap = false
     ScheduleIdleFadeUpdate(0)
-    local leftoverTracker = _G.YunoMovementTrackerFrame
-    if leftoverTracker then
-        leftoverTracker:Hide()
-        leftoverTracker:SetScript("OnUpdate", nil)
-    end
     State.bootstrapped = true
     if retry then ScheduleStartupRetries() end
 end
@@ -1729,21 +1726,21 @@ ns.GetLayoutAspectLabel = GetLayoutAspectLabel
 ns.GetEllesmereLayoutProfileName = GetEllesmereLayoutProfileName
 ns.TryLoadAddon = TryLoadAddon
 ns.CopyPlainTable = CopyPlainTable
-ns.GetYunoCVar = GetYunoCVar
-ns.SetYunoCVar = SetYunoCVar
+ns.GetInariCVar = GetInariCVar
+ns.SetInariCVar = SetInariCVar
 ns.ApplyCVarTable = ApplyCVarTable
 ns.ApplyFPSSettings = ApplyFPSSettings
-ns.ApplyYunoGraphicsSettings = ApplyYunoGraphicsSettings
+ns.ApplyInariGraphicsSettings = ApplyInariGraphicsSettings
 ns.ApplyFloatingCombatText = ApplyFloatingCombatText
-ns.ApplyYunoUIScale = ApplyYunoUIScale
+ns.ApplyInariUIScale = ApplyInariUIScale
 ns.RegisterMedia = RegisterMedia
-ns.GetYunoCharacterKey = GetYunoCharacterKey
+ns.GetInariCharacterKey = GetInariCharacterKey
 ns.MarkProfilePromptApplied = MarkProfilePromptApplied
 ns.MarkInstallerCompleted = MarkInstallerCompleted
 ns.MarkInstallerPendingFinalScale = MarkInstallerPendingFinalScale
 ns.IsInstallerComplete = function()
     EnsureDB()
-    return YunoDB.installerPendingFinalScale ~= true and YunoDB.installerCompletedVersion == CONST.profilePromptVersion
+    return InariDB.installerPendingFinalScale ~= true and InariDB.installerCompletedVersion == CONST.profilePromptVersion
 end
 ns.UI_SCALE = CONST.UI_SCALE
 ns.MarkProfilePromptDismissed = MarkProfilePromptDismissed

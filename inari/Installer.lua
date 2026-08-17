@@ -1,7 +1,7 @@
 local ADDON_NAME, ns = ...
 
 local function UI()
-    return ns.UI or _G.YunoUI
+    return ns.UI or _G.InariUI
 end
 
 local function Print(msg)
@@ -29,7 +29,7 @@ function ns.BuildInstallerPage(configFrame, ui)
     local steps = {
         {
             title = "BigWigs",
-            copy = "Imports the yuno BigWigs profile. Accept the BigWigs confirmation popup, then continue.",
+            copy = "Imports the inari BigWigs profile. Accept the BigWigs confirmation popup, then continue.",
             action = "IMPORT BIGWIGS",
             addon = "BigWigs",
             skippable = true,
@@ -40,11 +40,11 @@ function ns.BuildInstallerPage(configFrame, ui)
                     page._done[1] = accepted and true or false
                     page._failed[1] = not accepted
                     page._skipped[1] = not accepted
-                    Print(accepted and "BigWigs profile imported as yuno" or "BigWigs import cancelled")
+                    Print(accepted and "BigWigs profile imported as inari" or "BigWigs import cancelled")
                     page._currentIndex = page:NextIncomplete(1) or 1
                     page:RenderChecklist()
                     if accepted then
-                        page:SetMuted("BigWigs profile imported as yuno")
+                        page:SetMuted("BigWigs profile imported as inari")
                     else
                         page:SetStatus(false, "BigWigs import cancelled · skipped")
                     end
@@ -53,7 +53,7 @@ function ns.BuildInstallerPage(configFrame, ui)
         },
         {
             title = "EXBoss",
-            copy = "Imports the yuno EXBoss profile, including trash cooldowns and boss slots.",
+            copy = "Imports the inari EXBoss profile, including trash cooldowns and boss slots.",
             action = "IMPORT EXBOSS",
             addon = "EXBoss",
             skippable = true,
@@ -61,7 +61,7 @@ function ns.BuildInstallerPage(configFrame, ui)
         },
         {
             title = "sArena",
-            copy = "Imports the yuno sArena Reloaded profile.",
+            copy = "Imports the inari sArena Reloaded profile.",
             action = "IMPORT SARENA",
             addon = "sArena_Reloaded",
             skippable = true,
@@ -69,7 +69,7 @@ function ns.BuildInstallerPage(configFrame, ui)
         },
         {
             title = "Baganator",
-            copy = "Imports the yuno Baganator bag profile.",
+            copy = "Imports the inari Baganator bag profile.",
             action = "IMPORT BAGANATOR",
             addon = "Baganator",
             skippable = true,
@@ -77,21 +77,21 @@ function ns.BuildInstallerPage(configFrame, ui)
         },
         {
             title = "Blizzard Edit Mode",
-            copy = "Imports the yuno Edit Mode layout. An existing yuno layout is removed first so this is repeatable.",
+            copy = "Imports the inari Edit Mode layout. An existing inari layout is removed first so this is repeatable.",
             action = "IMPORT EDIT MODE",
             skippable = true,
             run = ns.ImportEditModeLayout,
         },
         {
             title = "Cooldown Manager",
-            copy = "Imports Cooldown Manager layouts for your current class. Existing yuno layouts are replaced.",
+            copy = "Imports Cooldown Manager layouts for your current class. Existing inari layouts are replaced.",
             action = "IMPORT CDM",
             skippable = true,
-            run = ns.ImportYunoCooldownLayouts,
+            run = ns.ImportInariCooldownLayouts,
         },
         {
             title = "EllesmereUI",
-            copy = "Imports both yuno EllesmereUI profiles (yuno16:9 and yuno21:9), then activates the layout you picked. Unit frame patches still apply after this step.",
+            copy = "Imports both inari EllesmereUI profiles (inari16:9 and inari21:9), then activates the layout you picked. Unit frame patches still apply after this step.",
             action = "IMPORT ELLESMEREUI",
             addon = "EllesmereUI",
             skippable = true,
@@ -101,14 +101,14 @@ function ns.BuildInstallerPage(configFrame, ui)
         },
         {
             title = "Ellesmere Settings",
-            copy = "Applies yuno's Ellesmere chat, Blizzard UI Enhanced, and Damage Meter settings.",
+            copy = "Applies inari's Ellesmere chat, Blizzard UI Enhanced, and Damage Meter settings.",
             action = "APPLY SETTINGS",
             addon = "EllesmereUI",
             skippable = true,
             run = function()
                 local ok, message = ns.ApplyEllesmereExtrasSettings()
                 if ok then
-                    local mode = ns.SetYunoAppearanceMode(page._appearanceMode or ns.GetAppearanceMode())
+                    local mode = ns.SetInariAppearanceMode(page._appearanceMode or ns.GetAppearanceMode())
                     local extra = mode == "class" and "appearance set to class colored" or "appearance set to dark mode"
                     message = (message or "settings applied") .. " · " .. extra
                     page:SetMuted(extra)
@@ -121,7 +121,7 @@ function ns.BuildInstallerPage(configFrame, ui)
             copy = "Reload once so Edit Mode, action bars, cooldowns, and Ellesmere initialize before UI scale.",
             action = "RELOAD UI",
             run = function()
-                ns.SetYunoAppearanceMode(page._appearanceMode or ns.GetAppearanceMode())
+                ns.SetInariAppearanceMode(page._appearanceMode or ns.GetAppearanceMode())
                 ns.MarkInstallerPendingFinalScale()
                 ReloadUI()
                 return true, "Reloading UI"
@@ -132,7 +132,7 @@ function ns.BuildInstallerPage(configFrame, ui)
             copy = "Apply the 0.5333 UI scale, mark the install complete, and reload one final time.",
             action = "APPLY SCALE",
             run = function()
-                ns.ApplyYunoUIScale(false)
+                ns.ApplyInariUIScale(false)
                 ns.MarkInstallerCompleted()
                 ns.MarkProfilePromptApplied()
                 ReloadUI()
@@ -172,11 +172,11 @@ function ns.BuildInstallerPage(configFrame, ui)
     local welcome = CreateFrame("Frame", nil, page)
     welcome:SetAllPoints()
 
-    welcome.header = ui:CreateText(welcome, "Install yuno", 20, "text", "bold")
+    welcome.header = ui:CreateText(welcome, "Install inari", 20, "text", "bold")
     welcome.header:SetPoint("TOPLEFT", 0, 0)
     welcome.header:SetPoint("RIGHT", 0, 0)
 
-    welcome.description = ui:CreateText(welcome, "Imports yuno profiles into supported addons. Missing addons are skipped. Pick 16:9 or 21:9 for EllesmereUI; both profiles are imported so you can switch later. Appearance is applied after import.", 12, "muted", "semibold")
+    welcome.description = ui:CreateText(welcome, "Imports inari profiles into supported addons. Missing addons are skipped. Pick 16:9 or 21:9 for EllesmereUI; both profiles are imported so you can switch later. Appearance is applied after import.", 12, "muted", "semibold")
     welcome.description:SetPoint("TOPLEFT", welcome.header, "BOTTOMLEFT", 0, -8)
     welcome.description:SetPoint("RIGHT", 0, 0)
     welcome.description:SetWordWrap(true)
@@ -564,7 +564,7 @@ function ns.BuildInstallerPage(configFrame, ui)
         ns.EnsureDB()
         page._appearanceMode = page._appearanceMode or ns.GetAppearanceMode()
         page._layoutAspect = page._layoutAspect or (ns.GetLayoutAspect and ns.GetLayoutAspect()) or "16"
-        if YunoDB.installerPendingFinalScale then
+        if InariDB.installerPendingFinalScale then
             self:PrepareResumeAtScale()
             self:ShowChecklist()
         elseif ns.IsInstallerComplete and ns.IsInstallerComplete() and self._stage ~= "checklist" then
@@ -593,9 +593,9 @@ function ns.ShowInstalledProfilesPrompt()
     local State = ns.State
 
     if not State.installedProfilesPromptFrame then
-        local frame = ui:CreateDialog("YunoInstalledProfilesPromptFrame", 500, 300, "profiles")
+        local frame = ui:CreateDialog("InariInstalledProfilesPromptFrame", 500, 300, "profiles")
         frame:SetHeading("Profiles installed")
-        frame:SetCopy("Apply yuno's installed profiles to this character and reload the UI?")
+        frame:SetCopy("Apply inari's installed profiles to this character and reload the UI?")
         frame.primaryButton:SetLabel("Apply & Reload")
         frame.secondaryButton:SetLabel("Not Now")
 
@@ -642,7 +642,7 @@ function ns.ShowProfileUpdatePrompt()
     end
 
     if not State.profileUpdatePromptFrame then
-        local frame = ui:CreateDialog("YunoProfileUpdatePromptFrame", 520, 340, "profiles")
+        local frame = ui:CreateDialog("InariProfileUpdatePromptFrame", 520, 340, "profiles")
         frame:SetHeading("Profiles updated")
         frame.primaryButton:SetLabel("Reimport & Reload")
         frame.secondaryButton:SetLabel("Not Now")

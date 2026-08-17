@@ -1,7 +1,7 @@
 local ADDON_NAME, ns = ...
 
 local function UI()
-    return ns.UI or _G.YunoUI
+    return ns.UI or _G.InariUI
 end
 
 local function Print(msg)
@@ -68,7 +68,7 @@ end
 
 local function UIScaleIsCorrect()
     local expected = ns.UI_SCALE or 0.5333333333
-    local current = tonumber(ns.GetYunoCVar and ns.GetYunoCVar("uiScale"))
+    local current = tonumber(ns.GetInariCVar and ns.GetInariCVar("uiScale"))
     if not current then return false, expected, nil end
     return math.abs(current - expected) < 0.001, expected, current
 end
@@ -88,7 +88,7 @@ end
 local function CombatTextMatches(value)
     local expected = tostring(value)
     for _, name in ipairs(ns.FLOATING_COMBAT_TEXT_CVARS) do
-        if tostring(ns.GetYunoCVar(name)) ~= expected then
+        if tostring(ns.GetInariCVar(name)) ~= expected then
             return false
         end
     end
@@ -97,7 +97,7 @@ end
 
 local function PresetMatches(cvars)
     for _, cvar in ipairs(cvars) do
-        if tostring(ns.GetYunoCVar(cvar[1])) ~= tostring(cvar[2]) then
+        if tostring(ns.GetInariCVar(cvar[1])) ~= tostring(cvar[2]) then
             return false
         end
     end
@@ -105,24 +105,24 @@ local function PresetMatches(cvars)
 end
 
 local function BuildAppearance(frame, ui)
-    local page = ui:CreatePage(frame.content, "Appearance", "How yuno colors unit frames. Class resource and power bars stay colored.")
+    local page = ui:CreatePage(frame.content, "Appearance", "How inari colors unit frames. Class resource and power bars stay colored.")
 
-    local yuno = page:AddSection("Yuno")
-    local enableToggle = yuno:AddToggle("Enable yuno", YunoDB.enabled == true, function(_, checked)
-        YunoDB.enabled = checked
+    local inari = page:AddSection("Inari")
+    local enableToggle = inari:AddToggle("Enable inari", InariDB.enabled == true, function(_, checked)
+        InariDB.enabled = checked
         if checked then
             ns.ScheduleApply()
             ns.UpdateIdleFadeController()
-            page:SetMuted("Yuno enabled.")
+            page:SetMuted("Inari enabled.")
             Print("enabled")
         else
             ns.RestoreAll()
             ns.UpdateIdleFadeController()
-            page:SetMuted("Yuno disabled.")
+            page:SetMuted("Inari disabled.")
             Print("disabled")
         end
     end)
-    yuno:AddButtonRow({
+    inari:AddButtonRow({
         {
             label = "Reapply",
             width = 150,
@@ -139,13 +139,13 @@ local function BuildAppearance(frame, ui)
         { label = "Dark Mode", value = "dark", width = 170 },
         { label = "Class Colored", value = "class", width = 170 },
     }, ns.GetAppearanceMode(), function(_, nextMode)
-        nextMode = ns.SetYunoAppearanceMode(nextMode)
+        nextMode = ns.SetInariAppearanceMode(nextMode)
         local message = nextMode == "class" and "appearance set to class colored" or "appearance set to dark mode"
         page:SetMuted(message)
         Print(message)
     end)
-    local themeToggle = mode:AddToggle("Sync EllesmereUI colors to yuno", YunoDB.forceEUITheme == true, function(_, checked)
-        YunoDB.forceEUITheme = checked
+    local themeToggle = mode:AddToggle("Sync EllesmereUI colors to inari", InariDB.forceEUITheme == true, function(_, checked)
+        InariDB.forceEUITheme = checked
         local message
         if checked then
             ns.ApplyEllesmereThemeSettings(true, true)
@@ -156,9 +156,9 @@ local function BuildAppearance(frame, ui)
         page:SetMuted(message)
         Print(message)
     end)
-    local opacityRow = mode:AddStepperRow("Health opacity", YunoDB.healthBarOpacity or 85, 0, 100, 1, function(_, value)
-        YunoDB.healthBarOpacity = value
-        YunoDB.forceOpacity = true
+    local opacityRow = mode:AddStepperRow("Health opacity", InariDB.healthBarOpacity or 85, 0, 100, 1, function(_, value)
+        InariDB.healthBarOpacity = value
+        InariDB.forceOpacity = true
         if ns.SetAllHealthOpacity(value) then
             ns.ScheduleApply()
             ns.ReloadEllesmereFrames()
@@ -170,22 +170,22 @@ local function BuildAppearance(frame, ui)
             Print("Ellesmere unit frame profiles were not ready")
         end
     end)
-    local tintRow = mode:AddStepperRow("Class background tint", math.floor((YunoDB.tint or 0.75) * 100 + 0.5), 0, 100, 1, function(_, value)
-        YunoDB.tint = value / 100
+    local tintRow = mode:AddStepperRow("Class background tint", math.floor((InariDB.tint or 0.75) * 100 + 0.5), 0, 100, 1, function(_, value)
+        InariDB.tint = value / 100
         ns.ScheduleApply()
         local message = "class background tint set to " .. tostring(value) .. "%"
         page:SetMuted(message)
         Print(message)
     end)
-    local shadowToggle = mode:AddToggle("Draw shadows on frames", YunoDB.frameShadows == true, function(_, checked)
-        YunoDB.frameShadows = checked
+    local shadowToggle = mode:AddToggle("Draw shadows on frames", InariDB.frameShadows == true, function(_, checked)
+        InariDB.frameShadows = checked
         ns.ScheduleApply()
         local message = checked and "frame shadows enabled" or "frame shadows disabled"
         page:SetMuted(message)
         Print(message)
     end)
-    local shadowRow = mode:AddStepperRow("Shadow strength", YunoDB.frameShadowStrength or 70, 0, 100, 5, function(_, value)
-        YunoDB.frameShadowStrength = value
+    local shadowRow = mode:AddStepperRow("Shadow strength", InariDB.frameShadowStrength or 70, 0, 100, 5, function(_, value)
+        InariDB.frameShadowStrength = value
         ns.ScheduleApply()
         local message = "shadow strength set to " .. tostring(value) .. "%"
         page:SetMuted(message)
@@ -193,13 +193,13 @@ local function BuildAppearance(frame, ui)
     end)
 
     function page:Refresh()
-        enableToggle:SetChecked(YunoDB.enabled == true)
+        enableToggle:SetChecked(InariDB.enabled == true)
         appearanceControl:SetValue(ns.GetAppearanceMode(), true)
-        themeToggle:SetChecked(YunoDB.forceEUITheme == true)
-        opacityRow:SetValue(YunoDB.healthBarOpacity or 85, true)
-        tintRow:SetValue(math.floor((YunoDB.tint or 0.75) * 100 + 0.5), true)
-        shadowToggle:SetChecked(YunoDB.frameShadows == true)
-        shadowRow:SetValue(YunoDB.frameShadowStrength or 70, true)
+        themeToggle:SetChecked(InariDB.forceEUITheme == true)
+        opacityRow:SetValue(InariDB.healthBarOpacity or 85, true)
+        tintRow:SetValue(math.floor((InariDB.tint or 0.75) * 100 + 0.5), true)
+        shadowToggle:SetChecked(InariDB.frameShadows == true)
+        shadowRow:SetValue(InariDB.frameShadowStrength or 70, true)
     end
 
     page:UpdateLayout()
@@ -210,15 +210,15 @@ local function BuildExtras(frame, ui)
     local page = ui:CreatePage(frame.content, "Extras", "Extra live UI options while you play.")
 
     local combat = page:AddSection("Combat")
-    local idleToggle = combat:AddToggle("Fade frames while idle", YunoDB.fadeIdlePlayerAndCooldowns == true, function(_, checked)
-        YunoDB.fadeIdlePlayerAndCooldowns = checked
+    local idleToggle = combat:AddToggle("Fade frames while idle", InariDB.fadeIdlePlayerAndCooldowns == true, function(_, checked)
+        InariDB.fadeIdlePlayerAndCooldowns = checked
         ns.ScheduleIdleFadeUpdate(0)
         local message = checked and "idle fade enabled" or "idle fade disabled"
         page:SetMuted(message)
         Print(message)
     end)
-    local nameplateToggle = combat:AddToggle("Force friendly player nameplates off", YunoDB.disableFriendlyPlayerNameplates == true, function(_, checked)
-        YunoDB.disableFriendlyPlayerNameplates = checked
+    local nameplateToggle = combat:AddToggle("Force friendly player nameplates off", InariDB.disableFriendlyPlayerNameplates == true, function(_, checked)
+        InariDB.disableFriendlyPlayerNameplates = checked
         local message
         if checked then
             ns.ApplyFriendlyPlayerNameplatePreference()
@@ -229,8 +229,8 @@ local function BuildExtras(frame, ui)
         page:SetMuted(message)
         Print(message)
     end)
-    local pagingToggle = combat:AddToggle("Disable form/stealth action bar paging", YunoDB.disableEllesmereActionBarPaging == true, function(_, checked)
-        YunoDB.disableEllesmereActionBarPaging = checked
+    local pagingToggle = combat:AddToggle("Disable form/stealth action bar paging", InariDB.disableEllesmereActionBarPaging == true, function(_, checked)
+        InariDB.disableEllesmereActionBarPaging = checked
         local applied = ns.ApplyEllesmereActionBarPagingOverride()
         ns.ScheduleApply()
         local message = checked and "form/stealth action bar paging disabled" or "form/stealth action bar paging enabled"
@@ -247,8 +247,8 @@ local function BuildExtras(frame, ui)
     local chatControl = chat:AddSegmented({
         { label = "Buttons Left", value = "left", width = 170 },
         { label = "Buttons Right", value = "right", width = 170 },
-    }, YunoDB.forceChatSidebarRight and "right" or "left", function(_, side)
-        YunoDB.forceChatSidebarRight = side == "right"
+    }, InariDB.forceChatSidebarRight and "right" or "left", function(_, side)
+        InariDB.forceChatSidebarRight = side == "right"
         ns.ApplyChatSettings()
         ns.ScheduleApply()
         local message = side == "right" and "chat buttons set to right" or "chat buttons set to left"
@@ -257,7 +257,7 @@ local function BuildExtras(frame, ui)
     end)
 
     ns.EnsureDB()
-    local portraits = YunoDB.portraits
+    local portraits = InariDB.portraits
     local function ApplyPortraits(message)
         if ns.RefreshPortraits then ns.RefreshPortraits() end
         if message then
@@ -309,12 +309,12 @@ local function BuildExtras(frame, ui)
     local targetToggle, targetAnchor, targetX, targetY = AddPortraitUnit("target", "Target")
 
     function page:Refresh()
-        idleToggle:SetChecked(YunoDB.fadeIdlePlayerAndCooldowns == true)
-        nameplateToggle:SetChecked(YunoDB.disableFriendlyPlayerNameplates == true)
-        pagingToggle:SetChecked(YunoDB.disableEllesmereActionBarPaging == true)
-        chatControl:SetValue(YunoDB.forceChatSidebarRight and "right" or "left", true)
+        idleToggle:SetChecked(InariDB.fadeIdlePlayerAndCooldowns == true)
+        nameplateToggle:SetChecked(InariDB.disableFriendlyPlayerNameplates == true)
+        pagingToggle:SetChecked(InariDB.disableEllesmereActionBarPaging == true)
+        chatControl:SetValue(InariDB.forceChatSidebarRight and "right" or "left", true)
         ns.EnsureDB()
-        portraits = YunoDB.portraits
+        portraits = InariDB.portraits
         portraitsToggle:SetChecked(portraits.enabled == true)
         sizeRow:SetValue(portraits.size or 52, true)
         zoomRow:SetValue(portraits.zoom or 0.22, true)
@@ -336,7 +336,7 @@ local function BuildExtras(frame, ui)
 end
 
 local function BuildProfiles(frame, ui)
-    local page = ui:CreatePage(frame.content, "Profiles", "Apply yuno profiles to this character, update bundled versions, and see which addons are present.")
+    local page = ui:CreatePage(frame.content, "Profiles", "Apply inari profiles to this character, update bundled versions, and see which addons are present.")
     local summary = page:AddSection("Installed")
     local installedRow = summary:AddInfoRow("Installed", "—")
     local outdatedRow = summary:AddInfoRow("Outdated", "—")
@@ -394,14 +394,14 @@ local function BuildCooldowns(frame, ui)
     local summary = page:AddSection("Blizzard Cooldown Manager")
     local versionRow = summary:AddInfoRow("Imported version", "—")
     local classRow = summary:AddInfoRow("Current class", ns.GetClassDisplayName())
-    summary:AddInfoRow("Import behavior", "replaces old yuno layouts")
+    summary:AddInfoRow("Import behavior", "replaces old inari layouts")
     summary:AddButtonRow({
         {
             label = "Import Layouts",
             width = 170,
             variant = "primary",
             onClick = function()
-                local ok, message = ns.ImportYunoCooldownLayouts()
+                local ok, message = ns.ImportInariCooldownLayouts()
                 page:SetStatus(ok, message or "")
                 Print(message or (ok and "cooldown layouts imported" or "cooldown import failed"))
                 if page.Refresh then page:Refresh() end
@@ -443,7 +443,7 @@ local function BuildSetup(frame, ui)
             label = "Apply UI Scale",
             width = 170,
             onClick = function()
-                ns.ApplyYunoUIScale(true)
+                ns.ApplyInariUIScale(true)
                 page:SetMuted("UI scale applied.")
                 Print("UI scale applied")
                 if page.Refresh then page:Refresh() end
@@ -467,7 +467,7 @@ local function BuildSetup(frame, ui)
     })
 
     local combatText = page:AddSection("Floating combat text")
-    local fctPreset = YunoDB.floatingCombatTextPreset
+    local fctPreset = InariDB.floatingCombatTextPreset
     if fctPreset ~= "disabled" and fctPreset ~= "enabled" then
         if CombatTextMatches(0) then fctPreset = "disabled"
         elseif CombatTextMatches(1) then fctPreset = "enabled"
@@ -486,21 +486,21 @@ local function BuildSetup(frame, ui)
 
     local graphics = page:AddSection("Graphics")
     graphics:AddText("Graphics presets apply immediately and overwrite the matching client CVars.", 12, "muted", 36)
-    local gfxPreset = YunoDB.graphicsPreset
-    if gfxPreset ~= "yuno" and gfxPreset ~= "fps" then
-        if PresetMatches(ns.YUNO_GRAPHICS_CVARS) then gfxPreset = "yuno"
+    local gfxPreset = InariDB.graphicsPreset
+    if gfxPreset ~= "inari" and gfxPreset ~= "fps" then
+        if PresetMatches(ns.INARI_GRAPHICS_CVARS) then gfxPreset = "inari"
         elseif PresetMatches(ns.FPS_CVARS) then gfxPreset = "fps"
         else gfxPreset = nil end
     end
     local gfxControl = graphics:AddSegmented({
         { label = "FPS Settings", value = "fps", width = 170 },
-        { label = "Yuno Graphics", value = "yuno", width = 170 },
+        { label = "Inari Graphics", value = "inari", width = 170 },
     }, gfxPreset, function(_, preset)
         local applied, skipped
         local message
-        if preset == "yuno" then
-            applied, skipped = ns.ApplyYunoGraphicsSettings()
-            message = "Yuno's graphics applied: " .. applied .. " CVars"
+        if preset == "inari" then
+            applied, skipped = ns.ApplyInariGraphicsSettings()
+            message = "Inari's graphics applied: " .. applied .. " CVars"
         else
             applied, skipped = ns.ApplyFPSSettings()
             message = "FPS preset applied: " .. applied .. " CVars"
@@ -511,7 +511,7 @@ local function BuildSetup(frame, ui)
     end)
 
     function page:Refresh()
-        if YunoDB.installerPendingFinalScale then
+        if InariDB.installerPendingFinalScale then
             installerRow.value:SetText("pending final scale")
             ui:SetStatusColor(installerRow.value, false)
         elseif ns.IsInstallerComplete and ns.IsInstallerComplete() then
@@ -527,16 +527,16 @@ local function BuildSetup(frame, ui)
         currentRow.value:SetText(current and FormatScale(current) or "unknown")
         ui:SetStatusColor(currentRow.value, ok)
 
-        local nextFct = YunoDB.floatingCombatTextPreset
+        local nextFct = InariDB.floatingCombatTextPreset
         if nextFct ~= "disabled" and nextFct ~= "enabled" then
             if CombatTextMatches(0) then nextFct = "disabled"
             elseif CombatTextMatches(1) then nextFct = "enabled"
             else nextFct = nil end
         end
         if nextFct then fctControl:SetValue(nextFct, true) end
-        local nextGfx = YunoDB.graphicsPreset
-        if nextGfx ~= "yuno" and nextGfx ~= "fps" then
-            if PresetMatches(ns.YUNO_GRAPHICS_CVARS) then nextGfx = "yuno"
+        local nextGfx = InariDB.graphicsPreset
+        if nextGfx ~= "inari" and nextGfx ~= "fps" then
+            if PresetMatches(ns.INARI_GRAPHICS_CVARS) then nextGfx = "inari"
             elseif PresetMatches(ns.FPS_CVARS) then nextGfx = "fps"
             else nextGfx = nil end
         end
@@ -555,7 +555,7 @@ local function ReimportEllesmereLayout(host, aspect, forceImport)
         aspect = ns.GetLayoutAspect and ns.GetLayoutAspect() or "16"
     end
     local label = ns.GetLayoutAspectLabel and ns.GetLayoutAspectLabel(aspect) or aspect
-    local profileName = ns.GetEllesmereLayoutProfileName and ns.GetEllesmereLayoutProfileName(aspect) or ("yuno" .. label)
+    local profileName = ns.GetEllesmereLayoutProfileName and ns.GetEllesmereLayoutProfileName(aspect) or ("inari" .. label)
     if InCombatLockdown and InCombatLockdown() then
         local message = "leave combat before switching to the " .. label .. " layout"
         Print(message)
@@ -585,7 +585,7 @@ local function ReimportEllesmereLayout(host, aspect, forceImport)
 end
 
 local function BuildLayout(frame, ui)
-    local page = ui:CreatePage(frame.content, "Layout", "Switches the EllesmereUI profile between yuno16:9 and yuno21:9. Reimport only if you need a fresh copy of the bundled layout.")
+    local page = ui:CreatePage(frame.content, "Layout", "Switches the EllesmereUI profile between inari16:9 and inari21:9. Reimport only if you need a fresh copy of the bundled layout.")
 
     local monitor = page:AddSection("Monitor")
     local currentRow = monitor:AddInfoRow("Current", "—")
@@ -613,7 +613,7 @@ local function BuildLayout(frame, ui)
         ns.EnsureDB()
         local aspect = ns.GetLayoutAspect and ns.GetLayoutAspect() or "16"
         local label = ns.GetLayoutAspectLabel and ns.GetLayoutAspectLabel(aspect) or aspect
-        local profileName = ns.GetEllesmereLayoutProfileName and ns.GetEllesmereLayoutProfileName(aspect) or ("yuno" .. label)
+        local profileName = ns.GetEllesmereLayoutProfileName and ns.GetEllesmereLayoutProfileName(aspect) or ("inari" .. label)
         currentRow.value:SetText(profileName)
         layoutControl:SetValue(aspect, true)
     end
@@ -651,7 +651,7 @@ local function BuildOverview(frame, ui)
         { label = "Class", value = "class", width = 80, height = 26 },
     })
     appearanceControl:SetOnChanged(function(_, mode)
-        mode = ns.SetYunoAppearanceMode(mode)
+        mode = ns.SetInariAppearanceMode(mode)
         local message = mode == "class" and "appearance set to class colored" or "appearance set to dark mode"
         Print(message)
         if overview.Refresh then overview:Refresh() end
@@ -682,8 +682,8 @@ local function BuildOverview(frame, ui)
         if relayout then relayout() end
         ns.EnsureDB()
 
-        if not YunoDB.enabled then
-            appearanceCard:SetStatus("Yuno disabled", "warn")
+        if not InariDB.enabled then
+            appearanceCard:SetStatus("Inari disabled", "warn")
             appearanceCard:SetAttention(true)
         else
             local mode = ns.GetAppearanceMode()
@@ -703,10 +703,10 @@ local function BuildOverview(frame, ui)
         end
         layoutControl:SetValue(aspect, true)
 
-        local idleFade = YunoDB.fadeIdlePlayerAndCooldowns == true
-        local disableNameplates = YunoDB.disableFriendlyPlayerNameplates == true
-        local disablePaging = YunoDB.disableEllesmereActionBarPaging == true
-        local portraitsOn = YunoDB.portraits and YunoDB.portraits.enabled == true
+        local idleFade = InariDB.fadeIdlePlayerAndCooldowns == true
+        local disableNameplates = InariDB.disableFriendlyPlayerNameplates == true
+        local disablePaging = InariDB.disableEllesmereActionBarPaging == true
+        local portraitsOn = InariDB.portraits and InariDB.portraits.enabled == true
         extrasCard:SetStatusLines({
             { text = "Idle Fade " .. (idleFade and "on" or "off"), on = idleFade },
             { text = "Disable friendly nameplates " .. (disableNameplates and "on" or "off"), on = disableNameplates },
@@ -748,13 +748,13 @@ local function BuildOverview(frame, ui)
         cooldownsCard:SetAttention(cooldownKind == "warn")
         local cooldownAction = cooldownKind == "warn" and cooldownStatus ~= "Not imported" and "UPDATE LAYOUTS" or "IMPORT LAYOUTS"
         cooldownsCard:SetAction(cooldownAction, cooldownKind == "warn" and "primary" or "ghost", function()
-            local ok, message = ns.ImportYunoCooldownLayouts()
+            local ok, message = ns.ImportInariCooldownLayouts()
             Print(message or (ok and "cooldown layouts imported" or "cooldown import failed"))
             overview:Refresh()
         end)
 
         local scaleOk = UIScaleIsCorrect()
-        if YunoDB.installerPendingFinalScale then
+        if InariDB.installerPendingFinalScale then
             setupCard:SetStatus("Pending final scale", "warn")
             setupCard:SetAttention(true)
             setupCard:SetAction("CONTINUE", "primary", function()
@@ -764,7 +764,7 @@ local function BuildOverview(frame, ui)
             setupCard:SetStatus("UI scale drifted", "warn")
             setupCard:SetAttention(true)
             setupCard:SetAction("APPLY SCALE", "primary", function()
-                ns.ApplyYunoUIScale(true)
+                ns.ApplyInariUIScale(true)
                 Print("UI scale applied")
                 overview:Refresh()
             end)
@@ -794,7 +794,7 @@ function ns.ShowConfigFrame(initialTab)
     local State = ns.State
 
     if not State.configFrame then
-        local frame = ui:CreateWindow("YunoConfigFrame", UIParent, 900, 640, "overview")
+        local frame = ui:CreateWindow("InariConfigFrame", UIParent, 900, 640, "overview")
         frame._pages = {}
 
         frame.content = CreateFrame("Frame", nil, frame.body)
@@ -821,7 +821,7 @@ function ns.ShowConfigFrame(initialTab)
             end
             frame._selectedPage = page
             if page ~= "install" then
-                YunoDB.lastConfigPage = page
+                InariDB.lastConfigPage = page
             end
 
             if page == "overview" then
@@ -880,7 +880,7 @@ function ns.ShowConfigFrame(initialTab)
     else
         local fallback = State.configFrame._selectedPage
         if fallback == "install" then fallback = nil end
-        selected = NormalizePage(fallback or YunoDB.lastConfigPage or "overview")
+        selected = NormalizePage(fallback or InariDB.lastConfigPage or "overview")
         if selected == "install" then selected = "overview" end
     end
     State.configFrame.SelectPage(selected)

@@ -1,6 +1,6 @@
 local ADDON_NAME, ns = ...
 
-local SHADOW_FILE = "Interface\\AddOns\\yuno\\Media\\frame-shadow.png"
+local SHADOW_FILE = "Interface\\AddOns\\inari\\Media\\frame-shadow.png"
 local EDGE = 16
 local OVERLAP = 1
 local UV = EDGE / 64
@@ -29,7 +29,7 @@ end
 
 local function ShadowsEnabled()
     ns.EnsureDB()
-    return YunoDB.enabled == true and YunoDB.frameShadows == true
+    return InariDB.enabled == true and InariDB.frameShadows == true
 end
 
 local function SafeNumber(value, fallback)
@@ -44,7 +44,7 @@ end
 
 local function StrengthScale()
     ns.EnsureDB()
-    local value = YunoDB.frameShadowStrength
+    local value = InariDB.frameShadowStrength
     if type(value) ~= "number" then value = 70 end
     if value < 0 then value = 0 end
     if value > 100 then value = 100 end
@@ -325,7 +325,7 @@ local function HostIsShown(host)
 end
 
 local function SyncShadowState(host)
-    local shadow = host and host._yunoDropShadow
+    local shadow = host and host._inariDropShadow
     if not shadow then return end
 
     if not ShadowsEnabled() or not HostIsShown(host) then
@@ -344,14 +344,14 @@ local function SyncShadowState(host)
 end
 
 local function HookHost(host)
-    if host._yunoShadowHooked then return end
-    host._yunoShadowHooked = true
+    if host._inariShadowHooked then return end
+    host._inariShadowHooked = true
 
     host:HookScript("OnShow", function()
         ns.QueueFrameShadowRefresh()
     end)
     host:HookScript("OnHide", function(self)
-        local shadow = self._yunoDropShadow
+        local shadow = self._inariDropShadow
         if shadow then shadow:Hide() end
     end)
     if hooksecurefunc then
@@ -364,13 +364,13 @@ local function HookHost(host)
     end)
 
     local unitFrame = GetUnitFrame(host)
-    if unitFrame and not unitFrame._yunoShadowShowHooked then
-        unitFrame._yunoShadowShowHooked = true
+    if unitFrame and not unitFrame._inariShadowShowHooked then
+        unitFrame._inariShadowShowHooked = true
         unitFrame:HookScript("OnShow", function()
             ns.QueueFrameShadowRefresh()
         end)
         unitFrame:HookScript("OnHide", function()
-            if host._yunoDropShadow then host._yunoDropShadow:Hide() end
+            if host._inariDropShadow then host._inariDropShadow:Hide() end
         end)
         if hooksecurefunc then
             hooksecurefunc(unitFrame, "SetAlpha", function()
@@ -392,7 +392,7 @@ local function HideOldTextures(shadow)
 end
 
 local function EnsureShadow(host)
-    local shadow = host._yunoDropShadow
+    local shadow = host._inariDropShadow
     local parent = GetShadowParent(host)
     if shadow then
         if shadow:GetParent() ~= parent then
@@ -403,7 +403,7 @@ local function EnsureShadow(host)
         shadow:EnableMouse(false)
         shadow:SetClipsChildren(false)
         shadow:SetIgnoreParentAlpha(true)
-        host._yunoDropShadow = shadow
+        host._inariDropShadow = shadow
         registry[host] = shadow
         HookHost(host)
     end

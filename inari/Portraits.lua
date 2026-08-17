@@ -3,9 +3,9 @@ local ADDON_NAME, ns = ...
 local MASK_FILE = "Interface\\AddOns\\EllesmereUI\\media\\portraits\\circle_mask.tga"
 local RING_FILE = "Interface\\AddOns\\EllesmereUI\\media\\portraits\\circle_border.tga"
 local FILL_FILE = "Interface\\Buttons\\WHITE8X8"
-local SHADOW_FILE = "Interface\\AddOns\\yuno\\Media\\portrait-shadow.png"
-local INNER_SHADOW_FILE = "Interface\\AddOns\\yuno\\Media\\portrait-inner-shadow.png"
-local HIGHLIGHT_FILE = "Interface\\AddOns\\yuno\\Media\\portrait-highlight.png"
+local SHADOW_FILE = "Interface\\AddOns\\inari\\Media\\portrait-shadow.png"
+local INNER_SHADOW_FILE = "Interface\\AddOns\\inari\\Media\\portrait-inner-shadow.png"
+local HIGHLIGHT_FILE = "Interface\\AddOns\\inari\\Media\\portrait-highlight.png"
 
 local UNITS = { "player", "target" }
 local UNIT_EVENTS = {
@@ -38,7 +38,7 @@ local ShouldUnitIdentityBeSecret = _G.C_Secrets and _G.C_Secrets.ShouldUnitIdent
 
 local function DB()
     ns.EnsureDB()
-    return YunoDB.portraits
+    return InariDB.portraits
 end
 
 local function OppositeAnchor(anchor)
@@ -95,21 +95,21 @@ local function SetUnitFramePortraitSuppressed(parent, suppressed)
     local portrait = parent.Portrait
     local backdrop = portrait and portrait.backdrop
     local function HookHide(frame)
-        if not frame or frame._yunoPortraitHooked then return end
-        frame._yunoPortraitHooked = true
+        if not frame or frame._inariPortraitHooked then return end
+        frame._inariPortraitHooked = true
         hooksecurefunc(frame, "Show", function(self)
-            if self._yunoSuppressLock then return end
-            if self._yunoWantPortraitHidden then
-                self._yunoSuppressLock = true
+            if self._inariSuppressLock then return end
+            if self._inariWantPortraitHidden then
+                self._inariSuppressLock = true
                 self:Hide()
-                self._yunoSuppressLock = nil
+                self._inariSuppressLock = nil
             end
         end)
     end
     local function Apply(frame)
         if not frame or type(frame.Hide) ~= "function" then return end
         HookHide(frame)
-        frame._yunoWantPortraitHidden = suppressed and true or false
+        frame._inariWantPortraitHidden = suppressed and true or false
         if suppressed then
             frame:Hide()
             if frame.SetAlpha then frame:SetAlpha(0) end
@@ -325,7 +325,7 @@ local function EnsureDepthLayers(frame)
 end
 
 local function CreatePortrait(unit, parent)
-    local name = "YunoPortrait_" .. unit
+    local name = "InariPortrait_" .. unit
     local frame = _G[name] or CreateFrame("Frame", name, parent)
     frame:SetParent(parent)
     frame.unit = unit
@@ -371,7 +371,7 @@ local function CreatePortrait(unit, parent)
 end
 
 local function HidePortrait(unit)
-    local frame = portraits[unit] or _G["YunoPortrait_" .. unit]
+    local frame = portraits[unit] or _G["InariPortrait_" .. unit]
     if not frame then return end
     CancelRetry(frame)
     frame:UnregisterAllEvents()

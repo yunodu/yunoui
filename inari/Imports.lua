@@ -7,7 +7,7 @@ local CONST = ns.CONST
 local State = ns.State
 local EXBOSS_IMPORT_SLOT_KEYS = ns.EXBOSS_IMPORT_SLOT_KEYS
 local EXBOSS_IMPORT_AUTHOR_SUFFIXES = ns.EXBOSS_IMPORT_AUTHOR_SUFFIXES
-local GetYunoCharacterKey = ns.GetYunoCharacterKey
+local GetInariCharacterKey = ns.GetInariCharacterKey
 local GetBundledProfileVersion
 local MarkImportedProfileVersion
 local ActivateEllesmereLayoutProfile
@@ -16,26 +16,26 @@ local GetActiveEllesmereProfile
 
 local function GetEllesmereLayoutProfileName(aspect)
     aspect = aspect or (ns.GetLayoutAspect and ns.GetLayoutAspect()) or "16"
-    return aspect == "21" and "yuno21:9" or "yuno16:9"
+    return aspect == "21" and "inari21:9" or "inari16:9"
 end
 
-local function IsYunoEllesmereProfile(name)
-    return name == "yuno" or name == "yuno16:9" or name == "yuno21:9"
+local function IsInariEllesmereProfile(name)
+    return name == "inari" or name == "inari16:9" or name == "inari21:9"
 end
 
--- Regular Ellesmere exports merge onto the active profile. Leave a yuno16:9
--- / yuno21:9 profile before importing the other layout, or the two mix.
-local function SwitchAwayFromOtherYunoEllesmereProfile(profileName)
+-- Regular Ellesmere exports merge onto the active profile. Leave an inari16:9
+-- / inari21:9 profile before importing the other layout, or the two mix.
+local function SwitchAwayFromOtherInariEllesmereProfile(profileName)
     local active = GetActiveEllesmereProfile and GetActiveEllesmereProfile()
     if not active or active == profileName then return end
-    if not IsYunoEllesmereProfile(active) then return end
+    if not IsInariEllesmereProfile(active) then return end
     if not EllesmereUI or type(EllesmereUI.SwitchProfile) ~= "function" then return end
     if EllesmereProfileExists and EllesmereProfileExists("Default") then
         pcall(EllesmereUI.SwitchProfile, "Default")
     end
 end
 
-local function RemapEllesmereFullAccountProfileToYuno(payload, profileName)
+local function RemapEllesmereFullAccountProfileToInari(payload, profileName)
     profileName = profileName or GetEllesmereLayoutProfileName()
     local data = payload and payload.data
     if type(data) ~= "table" then
@@ -174,7 +174,7 @@ local function ScrubEllesmereStrandedOverridesInPayload(payload)
 end
 
 local function GetEllesmereUIImportString(aspect)
-    local profiles = YunoProfiles
+    local profiles = InariProfiles
     if type(profiles) ~= "table" then return nil end
     aspect = aspect or (ns.GetLayoutAspect and ns.GetLayoutAspect()) or "16"
     if aspect == "21" then
@@ -230,7 +230,7 @@ local function ImportEllesmereUIProfile(aspect, opts)
                 return false, "EllesmereUI full-account import API is not available"
             end
 
-            local remapOk, remapErr = RemapEllesmereFullAccountProfileToYuno(payload, profileName)
+            local remapOk, remapErr = RemapEllesmereFullAccountProfileToInari(payload, profileName)
             if not remapOk then
                 return false, tostring(remapErr)
             end
@@ -267,7 +267,7 @@ local function ImportEllesmereUIProfile(aspect, opts)
             return false, "EllesmereUI import API is not available"
         end
 
-        SwitchAwayFromOtherYunoEllesmereProfile(profileName)
+        SwitchAwayFromOtherInariEllesmereProfile(profileName)
 
         if EllesmereProfileExists and EllesmereProfileExists(profileName)
             and GetActiveEllesmereProfile and GetActiveEllesmereProfile() ~= profileName
@@ -291,7 +291,7 @@ local function ImportEllesmereUIProfile(aspect, opts)
         return false, "EllesmereUI import API is not available"
     end
 
-    SwitchAwayFromOtherYunoEllesmereProfile(profileName)
+    SwitchAwayFromOtherInariEllesmereProfile(profileName)
 
     local ok, success, err, status = pcall(EllesmereUI.ImportProfile, importString, profileName)
     if not ok then
@@ -319,11 +319,11 @@ local function ImportBothEllesmereUIProfiles(activateAspect)
     if not ok then
         return false, message
     end
-    return true, "EllesmereUI profiles imported as yuno16:9 and yuno21:9"
+    return true, "EllesmereUI profiles imported as inari16:9 and inari21:9"
 end
 
 local function ImportBigWigsProfile(callback)
-    local importString = YunoProfiles and YunoProfiles.bigwigs
+    local importString = InariProfiles and InariProfiles.bigwigs
     if type(importString) ~= "string" or importString == "" then
         return false, "missing BigWigs profile string"
     end
@@ -337,9 +337,9 @@ local function ImportBigWigsProfile(callback)
     local wrappedCallback = function(accepted)
         if accepted then
             MarkImportedProfileVersion("bigwigs")
-            local bossString = YunoProfiles and YunoProfiles.bigwigsbosses
+            local bossString = InariProfiles and InariProfiles.bigwigsbosses
             if type(bossString) == "string" and bossString ~= "" and type(BigWigsAPI.ImportBossOptions) == "function" then
-                pcall(BigWigsAPI.ImportBossOptions, "yuno", bossString)
+                pcall(BigWigsAPI.ImportBossOptions, "inari", bossString)
             end
         end
         if callback then
@@ -347,7 +347,7 @@ local function ImportBigWigsProfile(callback)
         end
     end
 
-    local ok, err = pcall(BigWigsAPI.RegisterProfile, "yuno", importString, "yuno", wrappedCallback)
+    local ok, err = pcall(BigWigsAPI.RegisterProfile, "inari", importString, "inari", wrappedCallback)
     if not ok then
         return false, tostring(err)
     end
@@ -356,7 +356,7 @@ local function ImportBigWigsProfile(callback)
 end
 
 local function ImportEditModeLayout()
-    local importString = YunoProfiles and YunoProfiles.editmode
+    local importString = InariProfiles and InariProfiles.editmode
     if type(importString) ~= "string" or importString == "" then
         return false, "missing Edit Mode layout string"
     end
@@ -373,7 +373,7 @@ local function ImportEditModeLayout()
     end
 
     for i = #layouts.layouts, 1, -1 do
-        if layouts.layouts[i].layoutName == "yuno" then
+        if layouts.layouts[i].layoutName == "inari" then
             tremove(layouts.layouts, i)
         end
     end
@@ -387,7 +387,7 @@ local function ImportEditModeLayout()
         return false, "Edit Mode import string is invalid"
     end
 
-    info.layoutName = "yuno"
+    info.layoutName = "inari"
     info.layoutType = Enum and Enum.EditModeLayoutType and Enum.EditModeLayoutType.Account or info.layoutType
 
     tinsert(layouts.layouts, info)
@@ -411,11 +411,11 @@ local function ImportEditModeLayout()
     end
 
     MarkImportedProfileVersion("editmode")
-    return true, "Edit Mode layout imported as yuno"
+    return true, "Edit Mode layout imported as inari"
 end
 
 local function ImportBlinkiisPortraitsProfile()
-    local importString = YunoProfiles and YunoProfiles.blinkiiportraits
+    local importString = InariProfiles and InariProfiles.blinkiiportraits
     if type(importString) ~= "string" or importString == "" then
         return false, "missing Blinkii's Portraits profile string"
     end
@@ -450,9 +450,9 @@ local function ImportBlinkiisPortraitsProfile()
     BLINKIISPORTRAITS.db.profiles = BLINKIISPORTRAITS.db.profiles or {}
     local profile = CopyPlainTable(BLINKIISPORTRAITS.defaults and BLINKIISPORTRAITS.defaults.profile or {})
     CopyPlainTable(importDB.profile, profile)
-    BLINKIISPORTRAITS.db.profiles.yuno = profile
+    BLINKIISPORTRAITS.db.profiles.inari = profile
 
-    local setOk, setErr = pcall(BLINKIISPORTRAITS.db.SetProfile, BLINKIISPORTRAITS.db, "yuno")
+    local setOk, setErr = pcall(BLINKIISPORTRAITS.db.SetProfile, BLINKIISPORTRAITS.db, "inari")
     if not setOk then return false, tostring(setErr) end
 
     if type(BLINKIISPORTRAITS.LoadPortraits) == "function" then
@@ -460,11 +460,11 @@ local function ImportBlinkiisPortraitsProfile()
     end
 
     MarkImportedProfileVersion("blinkiiportraits")
-    return true, "Blinkii's Portraits profile imported as yuno"
+    return true, "Blinkii's Portraits profile imported as inari"
 end
 
 local function ImportEXBossProfile()
-    local importString = YunoProfiles and YunoProfiles.exboss
+    local importString = InariProfiles and InariProfiles.exboss
     if type(importString) ~= "string" or importString == "" then
         return false, "missing EXBoss profile string"
     end
@@ -500,7 +500,7 @@ local function ImportEXBossProfile()
         importAppearance = summary.hasAppearance == true,
         importTrashCD = summary.hasTrashCD == true,
         importSlots = importSlots,
-        namePrefix = "yuno",
+        namePrefix = "inari",
     }
     if not options.importAppearance and not options.importTrashCD and not hasSlot then
         return false, "EXBoss import string has no supported profile sections"
@@ -515,11 +515,11 @@ local function ImportEXBossProfile()
     end
 
     MarkImportedProfileVersion("exboss")
-    return true, "EXBoss profile imported as yuno"
+    return true, "EXBoss profile imported as inari"
 end
 
 local function ImportSArenaProfile()
-    local importString = YunoProfiles and YunoProfiles.sarena
+    local importString = InariProfiles and InariProfiles.sarena
     if type(importString) ~= "string" or importString == "" then
         return false, "missing sArena profile string"
     end
@@ -531,17 +531,17 @@ local function ImportSArenaProfile()
     end
 
     -- externalSource=true skips sArena's forced ReloadUI so the installer can continue.
-    local success, err = sArena:ImportProfile(importString, "yuno", true)
+    local success, err = sArena:ImportProfile(importString, "inari", true)
     if not success then
         return false, tostring(err or "sArena import failed")
     end
 
     if sArena.db and type(sArena.db.SetProfile) == "function" then
-        pcall(sArena.db.SetProfile, sArena.db, "yuno")
+        pcall(sArena.db.SetProfile, sArena.db, "inari")
     elseif type(sArena_ReloadedDB) == "table" then
         sArena_ReloadedDB.profiles = sArena_ReloadedDB.profiles or {}
         sArena_ReloadedDB.profileKeys = sArena_ReloadedDB.profileKeys or {}
-        sArena_ReloadedDB.profileKeys[GetYunoCharacterKey()] = "yuno"
+        sArena_ReloadedDB.profileKeys[GetInariCharacterKey()] = "inari"
     end
 
     if type(sArena.RefreshConfig) == "function" then
@@ -549,11 +549,11 @@ local function ImportSArenaProfile()
     end
 
     MarkImportedProfileVersion("sarena")
-    return true, "sArena profile imported as yuno"
+    return true, "sArena profile imported as inari"
 end
 
 local function ImportBaganatorProfile()
-    local importString = YunoProfiles and YunoProfiles.baganator
+    local importString = InariProfiles and InariProfiles.baganator
     if type(importString) ~= "string" or importString == "" then
         return false, "missing Baganator profile string"
     end
@@ -564,17 +564,17 @@ local function ImportBaganatorProfile()
         return false, "Baganator import API is not available"
     end
 
-    local ok, err = pcall(Baganator.API.ImportString, importString, "yuno")
+    local ok, err = pcall(Baganator.API.ImportString, importString, "inari")
     if not ok then
         return false, tostring(err or "Baganator import failed")
     end
 
     MarkImportedProfileVersion("baganator")
-    return true, "Baganator profile imported as yuno"
+    return true, "Baganator profile imported as inari"
 end
 
 GetBundledProfileVersion = function(key)
-    local versions = YunoProfiles and YunoProfiles.versions
+    local versions = InariProfiles and InariProfiles.versions
     local version = versions and versions[key]
     if type(version) == "number" then return version end
     return 1
@@ -583,8 +583,8 @@ end
 MarkImportedProfileVersion = function(key)
     if type(key) ~= "string" or key == "" then return end
     EnsureDB()
-    YunoDB.importedProfileVersions[key] = GetBundledProfileVersion(key)
-    YunoDB.profileUpdateDismissed[key] = nil
+    InariDB.importedProfileVersions[key] = GetBundledProfileVersion(key)
+    InariDB.profileUpdateDismissed[key] = nil
 end
 
 local function FindEditModeLayoutIndex(layoutName)
@@ -696,7 +696,7 @@ end
 local function GetCurrentEllesmereSpecProfile()
     if type(EllesmereUIDB) ~= "table" then return nil end
 
-    local characterKey = GetYunoCharacterKey()
+    local characterKey = GetInariCharacterKey()
     local specID = type(EllesmereUIDB.lastSpecByChar) == "table"
         and EllesmereUIDB.lastSpecByChar[characterKey]
         or nil
@@ -729,9 +729,9 @@ end
 local function ResolveInstalledEllesmereProfile()
     local wanted = GetEllesmereLayoutProfileName()
     if EllesmereProfileExists(wanted) then return wanted end
-    if EllesmereProfileExists("yuno16:9") then return "yuno16:9" end
-    if EllesmereProfileExists("yuno21:9") then return "yuno21:9" end
-    if EllesmereProfileExists("yuno") then return "yuno" end
+    if EllesmereProfileExists("inari16:9") then return "inari16:9" end
+    if EllesmereProfileExists("inari21:9") then return "inari21:9" end
+    if EllesmereProfileExists("inari") then return "inari" end
     return nil
 end
 
@@ -745,7 +745,7 @@ ActivateEllesmereLayoutProfile = function(profileName)
         local specProfiles = EllesmereUIDB.specProfiles
         if type(specProfiles) == "table" then
             for specID, assigned in pairs(specProfiles) do
-                if IsYunoEllesmereProfile(assigned) then
+                if IsInariEllesmereProfile(assigned) then
                     specProfiles[specID] = profileName
                 end
             end
@@ -761,7 +761,7 @@ ActivateEllesmereLayoutProfile = function(profileName)
         if specID then
             EllesmereUIDB.specProfiles = EllesmereUIDB.specProfiles or {}
             local assigned = EllesmereUIDB.specProfiles[specID]
-            if not assigned or IsYunoEllesmereProfile(assigned) then
+            if not assigned or IsInariEllesmereProfile(assigned) then
                 if EllesmereUI and type(EllesmereUI.AssignProfileToSpec) == "function" then
                     pcall(EllesmereUI.AssignProfileToSpec, profileName, specID)
                 else
@@ -791,7 +791,7 @@ ActivateEllesmereLayoutProfile = function(profileName)
     return true, "EllesmereUI switched to " .. profileName
 end
 
-local function HasInstalledYunoProfiles()
+local function HasInstalledInariProfiles()
     TryLoadAddon("EllesmereUI")
     TryLoadAddon("BigWigs")
     TryLoadAddon("EXBoss")
@@ -799,11 +799,11 @@ local function HasInstalledYunoProfiles()
     TryLoadAddon("Baganator")
 
     return ResolveInstalledEllesmereProfile() ~= nil
-        or BigWigsProfileExists("yuno")
-        or EXBossProfileExists("yuno")
-        or SArenaProfileExists("yuno")
-        or BaganatorProfileExists("yuno")
-        or FindEditModeLayoutIndex("yuno") ~= nil
+        or BigWigsProfileExists("inari")
+        or EXBossProfileExists("inari")
+        or SArenaProfileExists("inari")
+        or BaganatorProfileExists("inari")
+        or FindEditModeLayoutIndex("inari") ~= nil
 end
 
 local function ApplyExistingEllesmereProfile(applied, missing, failed)
@@ -827,21 +827,21 @@ end
 local function ApplyExistingBigWigsProfile(applied, missing, failed)
     TryLoadAddon("BigWigs")
 
-    if not BigWigsProfileExists("yuno") then
+    if not BigWigsProfileExists("inari") then
         missing[#missing + 1] = "BigWigs"
         return
     end
 
     local db = BigWigsLoader and BigWigsLoader.db
     if db and type(db.SetProfile) == "function" then
-        local ok, err = pcall(db.SetProfile, db, "yuno")
+        local ok, err = pcall(db.SetProfile, db, "inari")
         if not ok then
             failed[#failed + 1] = "BigWigs: " .. tostring(err)
             return
         end
     elseif type(BigWigs3DB) == "table" then
         BigWigs3DB.profileKeys = BigWigs3DB.profileKeys or {}
-        BigWigs3DB.profileKeys[GetYunoCharacterKey()] = "yuno"
+        BigWigs3DB.profileKeys[GetInariCharacterKey()] = "inari"
     end
 
     applied[#applied + 1] = "BigWigs"
@@ -850,21 +850,21 @@ end
 local function ApplyExistingBlinkiisPortraitsProfile(applied, missing, failed)
     TryLoadAddon("Blinkiis_Portraits")
 
-    if not BlinkiisPortraitsProfileExists("yuno") then
+    if not BlinkiisPortraitsProfileExists("inari") then
         missing[#missing + 1] = "Blinkii's Portraits"
         return
     end
 
     local db = BLINKIISPORTRAITS and BLINKIISPORTRAITS.db
     if db and type(db.SetProfile) == "function" then
-        local ok, err = pcall(db.SetProfile, db, "yuno")
+        local ok, err = pcall(db.SetProfile, db, "inari")
         if not ok then
             failed[#failed + 1] = "Blinkii's Portraits: " .. tostring(err)
             return
         end
     elseif type(BlinkiisPortraitsDB) == "table" then
         BlinkiisPortraitsDB.profileKeys = BlinkiisPortraitsDB.profileKeys or {}
-        BlinkiisPortraitsDB.profileKeys[GetYunoCharacterKey()] = "yuno"
+        BlinkiisPortraitsDB.profileKeys[GetInariCharacterKey()] = "inari"
     end
 
     if BLINKIISPORTRAITS and type(BLINKIISPORTRAITS.LoadPortraits) == "function" then
@@ -874,18 +874,18 @@ local function ApplyExistingBlinkiisPortraitsProfile(applied, missing, failed)
     applied[#applied + 1] = "Blinkii's Portraits"
 end
 
-local function FindEXBossYunoAuthor(slotKey)
+local function FindEXBossInariAuthor(slotKey)
     local db = type(EXBossDataDB) == "table" and type(EXBossDataDB.bossConfig) == "table" and EXBossDataDB.bossConfig or nil
     local slotRoot = db and type(db.userOverrides) == "table" and type(db.userOverrides[slotKey]) == "table" and db.userOverrides[slotKey] or nil
     if not slotRoot then return nil end
 
     local selected = db.slotSelection and db.slotSelection[slotKey]
-    if type(selected) == "string" and selected:lower():sub(1, 4) == "yuno" and type(slotRoot[selected]) == "table" then
+    if type(selected) == "string" and selected:lower():sub(1, 5) == "inari" and type(slotRoot[selected]) == "table" then
         return selected
     end
 
     local suffix = EXBOSS_IMPORT_AUTHOR_SUFFIXES[slotKey]
-    local expected = suffix and ("yuno-" .. suffix):lower() or nil
+    local expected = suffix and ("inari-" .. suffix):lower() or nil
     if expected then
         for authorKey, authorRow in pairs(slotRoot) do
             local key = tostring(authorKey or "")
@@ -897,7 +897,7 @@ local function FindEXBossYunoAuthor(slotKey)
 
     for authorKey, authorRow in pairs(slotRoot) do
         local key = tostring(authorKey or "")
-        if key:lower():sub(1, 4) == "yuno" and type(authorRow) == "table" then
+        if key:lower():sub(1, 5) == "inari" and type(authorRow) == "table" then
             return key
         end
     end
@@ -908,7 +908,7 @@ end
 local function ApplyExistingEXBossProfile(applied, missing, failed)
     TryLoadAddon("EXBoss")
 
-    if not EXBossProfileExists("yuno") then
+    if not EXBossProfileExists("inari") then
         missing[#missing + 1] = "EXBoss"
         return
     end
@@ -922,7 +922,7 @@ local function ApplyExistingEXBossProfile(applied, missing, failed)
 
     local appliedAny = false
     for _, slotKey in ipairs(EXBOSS_IMPORT_SLOT_KEYS) do
-        local authorKey = FindEXBossYunoAuthor(slotKey)
+        local authorKey = FindEXBossInariAuthor(slotKey)
         if authorKey then
             if bossConfig and type(bossConfig.SetSelectedAuthor) == "function" then
                 local ok, err = pcall(bossConfig.SetSelectedAuthor, bossConfig, slotKey, authorKey)
@@ -956,7 +956,7 @@ local function ApplyExistingEditModeLayout(applied, missing, failed)
         return
     end
 
-    local index = FindEditModeLayoutIndex("yuno")
+    local index = FindEditModeLayoutIndex("inari")
     if not index then
         missing[#missing + 1] = "Edit Mode"
         return
@@ -981,21 +981,21 @@ end
 local function ApplyExistingSArenaProfile(applied, missing, failed)
     TryLoadAddon("sArena_Reloaded")
 
-    if not SArenaProfileExists("yuno") then
+    if not SArenaProfileExists("inari") then
         missing[#missing + 1] = "sArena"
         return
     end
 
     local db = sArena and sArena.db
     if db and type(db.SetProfile) == "function" then
-        local ok, err = pcall(db.SetProfile, db, "yuno")
+        local ok, err = pcall(db.SetProfile, db, "inari")
         if not ok then
             failed[#failed + 1] = "sArena: " .. tostring(err)
             return
         end
     elseif type(sArena_ReloadedDB) == "table" then
         sArena_ReloadedDB.profileKeys = sArena_ReloadedDB.profileKeys or {}
-        sArena_ReloadedDB.profileKeys[GetYunoCharacterKey()] = "yuno"
+        sArena_ReloadedDB.profileKeys[GetInariCharacterKey()] = "inari"
     else
         failed[#failed + 1] = "sArena: profile database is not available"
         return
@@ -1011,12 +1011,12 @@ end
 local function ApplyExistingBaganatorProfile(applied, missing, failed)
     TryLoadAddon("Baganator")
 
-    if not BaganatorProfileExists("yuno") then
+    if not BaganatorProfileExists("inari") then
         missing[#missing + 1] = "Baganator"
         return
     end
 
-    if BAGANATOR_CURRENT_PROFILE == "yuno" then
+    if BAGANATOR_CURRENT_PROFILE == "inari" then
         applied[#applied + 1] = "Baganator (already active)"
         return
     end
@@ -1053,9 +1053,9 @@ local function ApplyInstalledProfilesToCharacter(markApplied)
 
     local message
     if #applied > 0 then
-        message = "yuno profiles ready for this character: " .. table.concat(applied, ", ")
+        message = "inari profiles ready for this character: " .. table.concat(applied, ", ")
     else
-        message = "no installed yuno profiles were found for this character"
+        message = "no installed inari profiles were found for this character"
     end
     if #missing > 0 then
         message = message .. " (missing: " .. table.concat(missing, ", ") .. ")"
@@ -1069,14 +1069,14 @@ end
 
 local function ShouldOfferInstalledProfiles()
     EnsureDB()
-    if YunoDB.profilePromptEnabled == false then return false end
-    if YunoDB.installerCompletedVersion ~= CONST.profilePromptVersion then return false end
+    if InariDB.profilePromptEnabled == false then return false end
+    if InariDB.installerCompletedVersion ~= CONST.profilePromptVersion then return false end
 
-    local key = GetYunoCharacterKey()
-    if YunoDB.profilePromptApplied[key] == CONST.profilePromptVersion then return false end
-    if YunoDB.profilePromptDismissed[key] == CONST.profilePromptVersion then return false end
+    local key = GetInariCharacterKey()
+    if InariDB.profilePromptApplied[key] == CONST.profilePromptVersion then return false end
+    if InariDB.profilePromptDismissed[key] == CONST.profilePromptVersion then return false end
 
-    return HasInstalledYunoProfiles()
+    return HasInstalledInariProfiles()
 end
 
 local function GetManagedProfileDefs()
@@ -1086,7 +1086,7 @@ local function GetManagedProfileDefs()
             label = "BigWigs",
             exists = function()
                 TryLoadAddon("BigWigs")
-                return BigWigsProfileExists("yuno")
+                return BigWigsProfileExists("inari")
             end,
             import = ImportBigWigsProfile,
             async = true,
@@ -1096,7 +1096,7 @@ local function GetManagedProfileDefs()
             label = "EXBoss",
             exists = function()
                 TryLoadAddon("EXBoss")
-                return EXBossProfileExists("yuno")
+                return EXBossProfileExists("inari")
             end,
             import = ImportEXBossProfile,
         },
@@ -1104,7 +1104,7 @@ local function GetManagedProfileDefs()
             key = "editmode",
             label = "Edit Mode",
             exists = function()
-                return FindEditModeLayoutIndex("yuno") ~= nil
+                return FindEditModeLayoutIndex("inari") ~= nil
             end,
             import = ImportEditModeLayout,
         },
@@ -1122,7 +1122,7 @@ local function GetManagedProfileDefs()
             label = "sArena",
             exists = function()
                 TryLoadAddon("sArena_Reloaded")
-                return SArenaProfileExists("yuno")
+                return SArenaProfileExists("inari")
             end,
             import = ImportSArenaProfile,
         },
@@ -1131,7 +1131,7 @@ local function GetManagedProfileDefs()
             label = "Baganator",
             exists = function()
                 TryLoadAddon("Baganator")
-                return BaganatorProfileExists("yuno")
+                return BaganatorProfileExists("inari")
             end,
             import = ImportBaganatorProfile,
         },
@@ -1140,15 +1140,15 @@ end
 
 local function SeedInstalledProfileVersions()
     EnsureDB()
-    if YunoDB.profileVersionsSeeded then return end
+    if InariDB.profileVersionsSeeded then return end
 
     for _, def in ipairs(GetManagedProfileDefs()) do
-        if def.exists() and YunoDB.importedProfileVersions[def.key] == nil then
-            YunoDB.importedProfileVersions[def.key] = GetBundledProfileVersion(def.key)
+        if def.exists() and InariDB.importedProfileVersions[def.key] == nil then
+            InariDB.importedProfileVersions[def.key] = GetBundledProfileVersion(def.key)
         end
     end
 
-    YunoDB.profileVersionsSeeded = true
+    InariDB.profileVersionsSeeded = true
 end
 
 local function GetOutdatedInstalledProfiles()
@@ -1159,7 +1159,7 @@ local function GetOutdatedInstalledProfiles()
     for _, def in ipairs(GetManagedProfileDefs()) do
         if def.exists() then
             local bundled = GetBundledProfileVersion(def.key)
-            local imported = YunoDB.importedProfileVersions[def.key]
+            local imported = InariDB.importedProfileVersions[def.key]
             if type(imported) ~= "number" then imported = 0 end
             if imported < bundled then
                 outdated[#outdated + 1] = def
@@ -1240,8 +1240,8 @@ end
 
 local function ShouldOfferProfileUpdates()
     EnsureDB()
-    if YunoDB.profileUpdateEnabled == false then return false end
-    if YunoDB.installerCompletedVersion ~= CONST.profilePromptVersion then return false end
+    if InariDB.profileUpdateEnabled == false then return false end
+    if InariDB.installerCompletedVersion ~= CONST.profilePromptVersion then return false end
     if State.profileUpdatePromptDismissedThisSession then return false end
     return #GetOutdatedInstalledProfiles() > 0
 end
@@ -1290,11 +1290,11 @@ local function StartsWith(text, prefix)
     return type(text) == "string" and text:sub(1, #prefix) == prefix
 end
 
-local function GetYunoCooldownData()
+local function GetInariCooldownData()
     local classKey = GetClassKey()
-    local classData = classKey and YunoCooldownLayouts and YunoCooldownLayouts[classKey]
+    local classData = classKey and InariCooldownLayouts and InariCooldownLayouts[classKey]
     if type(classData) ~= "string" then
-        return nil, "no yuno cooldown data found for " .. tostring(classKey or "current class")
+        return nil, "no inari cooldown data found for " .. tostring(classKey or "current class")
     end
 
     return classData
@@ -1331,10 +1331,10 @@ local function SaveCooldownLayouts(layoutManager)
     end
 end
 
-local function RemoveYunoCooldownLayouts(layoutManager)
+local function RemoveInariCooldownLayouts(layoutManager)
     if not layoutManager or type(layoutManager.layouts) ~= "table" then return 0 end
 
-    local prefix = "yuno - " .. GetClassDisplayName()
+    local prefix = "inari - " .. GetClassDisplayName()
     local removed = 0
     local kept = {}
 
@@ -1364,7 +1364,7 @@ local function RemoveYunoCooldownLayouts(layoutManager)
     return removed
 end
 
-local function RenameYunoCooldownLayouts(layoutManager, layoutIDs)
+local function RenameInariCooldownLayouts(layoutManager, layoutIDs)
     local className = GetClassDisplayName()
     local specs = GetSpecNames()
     local activeSpec = GetCurrentSpecName()
@@ -1384,7 +1384,7 @@ local function RenameYunoCooldownLayouts(layoutManager, layoutIDs)
             end
 
             specName = specName or specs[index] or tostring(index)
-            local newName = "yuno - " .. className .. " " .. specName
+            local newName = "inari - " .. className .. " " .. specName
             layout.name = newName
             layout.layoutName = newName
 
@@ -1397,37 +1397,37 @@ local function RenameYunoCooldownLayouts(layoutManager, layoutIDs)
     return activeLayoutID
 end
 
-local function ImportYunoCooldownLayouts()
+local function ImportInariCooldownLayouts()
     if InCombatLockdown and InCombatLockdown() then
         return false, "leave combat before importing cooldown layouts"
     end
 
-    local classData, dataError = GetYunoCooldownData()
+    local classData, dataError = GetInariCooldownData()
     if not classData then return false, dataError end
 
     local layoutManager, managerError = GetCooldownLayoutManager()
     if not layoutManager then return false, managerError end
 
-    local removed = RemoveYunoCooldownLayouts(layoutManager)
+    local removed = RemoveInariCooldownLayouts(layoutManager)
     local ok, layoutIDs = pcall(layoutManager.CreateLayoutsFromSerializedData, layoutManager, classData)
     if not ok or type(layoutIDs) ~= "table" or #layoutIDs == 0 then
         return false, "Blizzard rejected the cooldown layout import"
     end
 
-    local activeLayoutID = RenameYunoCooldownLayouts(layoutManager, layoutIDs)
+    local activeLayoutID = RenameInariCooldownLayouts(layoutManager, layoutIDs)
     if activeLayoutID and type(layoutManager.SetActiveLayoutByID) == "function" then
         pcall(layoutManager.SetActiveLayoutByID, layoutManager, activeLayoutID)
     end
 
     SaveCooldownLayouts(layoutManager)
     MarkImportedProfileVersion("cdm")
-    return true, "imported " .. #layoutIDs .. " cooldown layouts, removed " .. removed .. " old yuno layouts"
+    return true, "imported " .. #layoutIDs .. " cooldown layouts, removed " .. removed .. " old inari layouts"
 end
 
-local function HasYunoCooldownLayouts()
+local function HasInariCooldownLayouts()
     local layoutManager = GetCooldownLayoutManager()
     if not layoutManager or type(layoutManager.layouts) ~= "table" then return false end
-    local prefix = "yuno - "
+    local prefix = "inari - "
     for _, layout in pairs(layoutManager.layouts) do
         local name = layout and (layout.name or layout.layoutName)
         if type(name) == "string" and StartsWith(name, prefix) then
@@ -1440,8 +1440,8 @@ end
 local function GetCooldownLayoutVersionInfo()
     EnsureDB()
     local bundled = GetBundledProfileVersion("cdm")
-    local imported = YunoDB.importedProfileVersions and YunoDB.importedProfileVersions.cdm
-    local hasLayouts = HasYunoCooldownLayouts()
+    local imported = InariDB.importedProfileVersions and InariDB.importedProfileVersions.cdm
+    local hasLayouts = HasInariCooldownLayouts()
     if type(imported) ~= "number" then imported = nil end
     return {
         bundled = bundled,
@@ -1464,10 +1464,10 @@ ns.ImportBlinkiisPortraitsProfile = ImportBlinkiisPortraitsProfile
 ns.ImportEXBossProfile = ImportEXBossProfile
 ns.ImportSArenaProfile = ImportSArenaProfile
 ns.ImportBaganatorProfile = ImportBaganatorProfile
-ns.ImportYunoCooldownLayouts = ImportYunoCooldownLayouts
+ns.ImportInariCooldownLayouts = ImportInariCooldownLayouts
 ns.GetCooldownLayoutVersionInfo = GetCooldownLayoutVersionInfo
 ns.GetClassDisplayName = GetClassDisplayName
-ns.HasInstalledYunoProfiles = HasInstalledYunoProfiles
+ns.HasInstalledInariProfiles = HasInstalledInariProfiles
 ns.ApplyInstalledProfilesToCharacter = ApplyInstalledProfilesToCharacter
 ns.ShouldOfferInstalledProfiles = ShouldOfferInstalledProfiles
 ns.GetManagedProfileDefs = GetManagedProfileDefs

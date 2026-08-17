@@ -30,7 +30,7 @@ end
 
 local function IsDarkMode()
     EnsureDB()
-    if YunoDB.appearanceMode == "class" then return false end
+    if InariDB.appearanceMode == "class" then return false end
     return true
 end
 
@@ -124,7 +124,7 @@ end
 
 local function GetAppearanceMode()
     EnsureDB()
-    if YunoDB.appearanceMode == "class" then return "class" end
+    if InariDB.appearanceMode == "class" then return "class" end
     return "dark"
 end
 
@@ -159,7 +159,7 @@ local function ApplyConfiguredProfileSettings()
 
     local changed = false
     if type(profile) == "table" then
-        local desiredDarkTheme = not classColored and YunoDB.forceDarkMode == true
+        local desiredDarkTheme = not classColored and InariDB.forceDarkMode == true
         if profile.darkTheme ~= desiredDarkTheme then
             profile.darkTheme = desiredDarkTheme
             changed = true
@@ -167,17 +167,17 @@ local function ApplyConfiguredProfileSettings()
     end
 
     if type(profile) == "table" then
-        local opacity = math.floor((YunoDB.healthBarOpacity or 85) + 0.5)
+        local opacity = math.floor((InariDB.healthBarOpacity or 85) + 0.5)
         for _, key in ipairs(DB_UNITS) do
             local settings = profile[key]
             if type(settings) == "table" then
-                if YunoDB.forceOpacity and settings.healthBarOpacity ~= opacity then
+                if InariDB.forceOpacity and settings.healthBarOpacity ~= opacity then
                     settings.healthBarOpacity = opacity
                     changed = true
                 end
                 if classColored then
                     changed = ApplyClassColoredUnitSettings(settings) or changed
-                elseif YunoDB.forceDarkMode then
+                elseif InariDB.forceDarkMode then
                     changed = ApplyDarkModeUnitSettings(settings) or changed
                 end
             end
@@ -189,13 +189,13 @@ local function ApplyConfiguredProfileSettings()
         if classColored then
             changed = ApplyClassColoredRaidSettings(raidProfile) or changed
             changed = ApplyClassColoredRaidSettings(raidProfile, "party_") or changed
-        elseif YunoDB.forceDarkMode then
+        elseif InariDB.forceDarkMode then
             changed = ApplyDarkModeRaidSettings(raidProfile) or changed
             changed = ApplyDarkModeRaidSettings(raidProfile, "party_") or changed
         end
 
-        if YunoDB.forceOpacity then
-            local opacity = math.floor((YunoDB.healthBarOpacity or 85) + 0.5)
+        if InariDB.forceOpacity then
+            local opacity = math.floor((InariDB.healthBarOpacity or 85) + 0.5)
             if raidProfile.healthBarOpacity ~= opacity then
                 raidProfile.healthBarOpacity = opacity
                 changed = true
@@ -213,41 +213,41 @@ end
 
 local function AppearanceToken()
     return table.concat({
-        tostring(YunoDB.appearanceMode),
-        tostring(YunoDB.classBackground),
-        tostring(YunoDB.tint),
-        tostring(YunoDB.healthBarOpacity),
-        tostring(YunoDB.darkOpacity),
-        tostring(YunoDB.enabled),
+        tostring(InariDB.appearanceMode),
+        tostring(InariDB.classBackground),
+        tostring(InariDB.tint),
+        tostring(InariDB.healthBarOpacity),
+        tostring(InariDB.darkOpacity),
+        tostring(InariDB.enabled),
     }, ":")
 end
 
 local function ClearBackgroundTintCache(bg)
     if not bg then return end
-    bg._yunoR, bg._yunoG, bg._yunoB = nil, nil, nil
+    bg._inariR, bg._inariG, bg._inariB = nil, nil, nil
 end
 
 local function UnwrapHealthAppearance(health)
     if not health then return end
-    if health.PostUpdateColor == health._yunoPostUpdateColor then
-        health.PostUpdateColor = health._yunoOriginalPostUpdateColor
+    if health.PostUpdateColor == health._inariPostUpdateColor then
+        health.PostUpdateColor = health._inariOriginalPostUpdateColor
     end
-    health._yunoPostUpdateColor = nil
-    health._yunoOriginalPostUpdateColor = nil
-    health._yunoDarkModeOverride = nil
-    health._yunoAppearanceToken = nil
-    health._yunoBgAnchored = nil
-    health._yunoRaidToken = nil
-    ClearBackgroundTintCache(health.bg or health._yunoBg)
+    health._inariPostUpdateColor = nil
+    health._inariOriginalPostUpdateColor = nil
+    health._inariDarkModeOverride = nil
+    health._inariAppearanceToken = nil
+    health._inariBgAnchored = nil
+    health._inariRaidToken = nil
+    ClearBackgroundTintCache(health.bg or health._inariBg)
 end
 
-local function SetYunoAppearanceMode(mode)
+local function SetInariAppearanceMode(mode)
     EnsureDB()
     if mode ~= "class" then mode = "dark" end
 
-    YunoDB.appearanceMode = mode
-    YunoDB.forceDarkMode = mode == "dark"
-    YunoDB.classBackground = mode == "dark"
+    InariDB.appearanceMode = mode
+    InariDB.forceDarkMode = mode == "dark"
+    InariDB.classBackground = mode == "dark"
 
     ApplyConfiguredProfileSettings()
     State.discoveredFramesCached = false
@@ -295,7 +295,7 @@ local function ClassColorRGB(classToken)
 end
 
 local function GetClassTint(unit)
-    local tint = YunoDB.tint or 0.75
+    local tint = InariDB.tint or 0.75
     local r, g, b
 
     if unit and UnitExists(unit) then
@@ -323,14 +323,14 @@ local function GetClassTint(unit)
 end
 
 local function GetHealthBackground(health)
-    return health and (health.bg or health._yunoBg) or nil
+    return health and (health.bg or health._inariBg) or nil
 end
 
 local function RestoreBackgroundColor(health, unit)
     local bg = GetHealthBackground(health)
     if not health or not bg then return end
     local settings = GetUnitSettings(unit)
-    local darkMode = health._yunoDarkModeOverride
+    local darkMode = health._inariDarkModeOverride
     if darkMode == nil then darkMode = IsDarkMode() end
     if darkMode then
         ClearBackgroundTintCache(bg)
@@ -338,9 +338,9 @@ local function RestoreBackgroundColor(health, unit)
         return
     end
 
-    if health._yunoBgOwner then
+    if health._inariBgOwner then
         bg:ClearAllPoints()
-        bg:SetAllPoints(health._yunoBgOwner)
+        bg:SetAllPoints(health._inariBgOwner)
     end
 
     local customBg = settings and settings.customBgColor
@@ -355,11 +355,11 @@ end
 local function AnchorMissingHealthBackground(health)
     local bg = GetHealthBackground(health)
     if not health or not bg then return end
-    local darkMode = health._yunoDarkModeOverride
+    local darkMode = health._inariDarkModeOverride
     if darkMode == nil then darkMode = IsDarkMode() end
     if not darkMode then return end
-    local reverse = health._yunoReverseFill or (health.GetReverseFill and health:GetReverseFill()) or false
-    if health._yunoBgAnchored == reverse then return end
+    local reverse = health._inariReverseFill or (health.GetReverseFill and health:GetReverseFill()) or false
+    if health._inariBgAnchored == reverse then return end
     local fill = health:GetStatusBarTexture()
     if not fill then return end
 
@@ -371,22 +371,22 @@ local function AnchorMissingHealthBackground(health)
         bg:SetPoint("TOPLEFT", fill, "TOPRIGHT", 0, 0)
         bg:SetPoint("BOTTOMRIGHT", health, "BOTTOMRIGHT", 0, 0)
     end
-    health._yunoBgAnchored = reverse
+    health._inariBgAnchored = reverse
 end
 
 local function ApplyHealthPatch(health, unit, color)
-    if not YunoDB.enabled or not health then return end
+    if not InariDB.enabled or not health then return end
 
     local settings = GetUnitSettings(unit)
     if settings then
-        health._yunoReverseFill = settings.healthReverseFill and true or false
-        if health.SetReverseFill then health:SetReverseFill(health._yunoReverseFill) end
+        health._inariReverseFill = settings.healthReverseFill and true or false
+        if health.SetReverseFill then health:SetReverseFill(health._inariReverseFill) end
     end
 
     local darkMode = IsDarkMode()
     local fill = health.GetStatusBarTexture and health:GetStatusBarTexture()
     local alpha = GetHealthAlpha(unit)
-    if not darkMode or YunoDB.darkOpacity then
+    if not darkMode or InariDB.darkOpacity then
         if fill then fill:SetAlpha(alpha) end
         local bg = GetHealthBackground(health)
         if bg then bg:SetAlpha(alpha) end
@@ -396,10 +396,10 @@ local function ApplyHealthPatch(health, unit, color)
 
     local bg = GetHealthBackground(health)
     if bg then
-        if YunoDB.classBackground then
+        if InariDB.classBackground then
             local r, g, b = GetClassTint(unit)
             if r then
-                bg._yunoR, bg._yunoG, bg._yunoB = r, g, b
+                bg._inariR, bg._inariG, bg._inariB = r, g, b
                 bg:SetColorTexture(r, g, b, 1)
             end
         else
@@ -451,7 +451,7 @@ local function RestoreFrameObject(frame, fallbackUnit)
     local health = frame and frame.Health
     if not health then return end
 
-    local unit = ResolveFrameUnit(frame, fallbackUnit or health._yunoUnit)
+    local unit = ResolveFrameUnit(frame, fallbackUnit or health._inariUnit)
     if not unit then return end
 
     RestoreBackgroundColor(health, unit)
@@ -498,24 +498,24 @@ end
 
 local function WrapHealth(unit, health)
     if not health then return false end
-    health._yunoUnit = unit
+    health._inariUnit = unit
 
     local token = AppearanceToken()
-    if health._yunoAppearanceToken ~= token then
+    if health._inariAppearanceToken ~= token then
         UnwrapHealthAppearance(health)
-        health._yunoAppearanceToken = token
+        health._inariAppearanceToken = token
     end
 
-    if health.PostUpdateColor ~= health._yunoPostUpdateColor then
-        health._yunoOriginalPostUpdateColor = health.PostUpdateColor
-        health._yunoPostUpdateColor = function(self, eventUnit, color)
-            local original = self._yunoOriginalPostUpdateColor
-            if original and original ~= self._yunoPostUpdateColor then
+    if health.PostUpdateColor ~= health._inariPostUpdateColor then
+        health._inariOriginalPostUpdateColor = health.PostUpdateColor
+        health._inariPostUpdateColor = function(self, eventUnit, color)
+            local original = self._inariOriginalPostUpdateColor
+            if original and original ~= self._inariPostUpdateColor then
                 original(self, eventUnit, color)
             end
-            ApplyHealthPatch(self, self._yunoUnit or eventUnit, color)
+            ApplyHealthPatch(self, self._inariUnit or eventUnit, color)
         end
-        health.PostUpdateColor = health._yunoPostUpdateColor
+        health.PostUpdateColor = health._inariPostUpdateColor
     end
 
     ApplyHealthPatch(health, unit)
@@ -526,7 +526,7 @@ local function PatchFrameObject(frame, fallbackUnit)
     local health = frame and frame.Health
     if not health then return nil end
 
-    local unit = ResolveFrameUnit(frame, fallbackUnit or health._yunoUnit)
+    local unit = ResolveFrameUnit(frame, fallbackUnit or health._inariUnit)
     if not unit then return nil end
 
     if WrapHealth(unit, health) then return health end
@@ -573,9 +573,9 @@ local function RestoreRaidFrameBackground(health, isParty)
         return
     end
 
-    if health._yunoBgOwner then
+    if health._inariBgOwner then
         bg:ClearAllPoints()
-        bg:SetAllPoints(health._yunoBgOwner)
+        bg:SetAllPoints(health._inariBgOwner)
     end
 
     local bgColor = GetRaidFrameProfileValue("customBgColor", isParty) or { r = 17 / 255, g = 17 / 255, b = 17 / 255 }
@@ -586,20 +586,20 @@ end
 
 local ApplyRaidFrameHealthPatch
 ApplyRaidFrameHealthPatch = function(button, health, bg, unit, isParty)
-    if not YunoDB.enabled or not health then return end
+    if not InariDB.enabled or not health then return end
 
     local token = AppearanceToken() .. ":" .. tostring(isParty)
-    local same = health._yunoRaidToken == token and health._yunoRaidUnit == unit
+    local same = health._inariRaidToken == token and health._inariRaidUnit == unit
     if not same then
-        health._yunoRaidToken = token
-        health._yunoRaidUnit = unit
-        health._yunoUnit = unit
-        health._yunoBg = bg
-        health._yunoBgOwner = button
-        health._yunoDarkModeOverride = IsRaidFrameDarkMode(isParty)
+        health._inariRaidToken = token
+        health._inariRaidUnit = unit
+        health._inariUnit = unit
+        health._inariBg = bg
+        health._inariBgOwner = button
+        health._inariDarkModeOverride = IsRaidFrameDarkMode(isParty)
 
         local fill = health.GetStatusBarTexture and health:GetStatusBarTexture()
-        if not health._yunoDarkModeOverride or YunoDB.darkOpacity then
+        if not health._inariDarkModeOverride or InariDB.darkOpacity then
             local alpha = GetRaidFrameHealthAlpha(isParty)
             if fill then fill:SetAlpha(alpha) end
             if bg then bg:SetAlpha(alpha) end
@@ -609,26 +609,26 @@ ApplyRaidFrameHealthPatch = function(button, health, bg, unit, isParty)
     end
 
     if bg then
-        bg._yunoRaidApplying = true
-        if YunoDB.classBackground then
+        bg._inariRaidApplying = true
+        if InariDB.classBackground then
             local r, g, b = GetRaidFrameClassTint(unit)
             if r then
-                bg._yunoR, bg._yunoG, bg._yunoB = r, g, b
+                bg._inariR, bg._inariG, bg._inariB = r, g, b
                 bg:SetColorTexture(r, g, b, 1)
             end
         else
             RestoreRaidFrameBackground(health, isParty)
         end
-        bg._yunoRaidApplying = false
+        bg._inariRaidApplying = false
     end
 end
 
 local function HookRaidFrameBackground(button, health, bg, isParty)
-    if not hooksecurefunc or not button or not health or not bg or bg._yunoRaidBgHooked then return end
-    bg._yunoRaidBgHooked = true
+    if not hooksecurefunc or not button or not health or not bg or bg._inariRaidBgHooked then return end
+    bg._inariRaidBgHooked = true
     hooksecurefunc(bg, "SetColorTexture", function(self)
-        if self._yunoRaidApplying then return end
-        ApplyRaidFrameHealthPatch(button, health, self, ResolveFrameUnit(button) or health._yunoUnit, isParty)
+        if self._inariRaidApplying then return end
+        ApplyRaidFrameHealthPatch(button, health, self, ResolveFrameUnit(button) or health._inariUnit, isParty)
     end)
 end
 
@@ -676,15 +676,15 @@ local function PatchRaidFrameButton(button, isParty, seenHealth)
     if not unit then return 0 end
 
     local bg = FindRaidFrameBackground(button)
-    health._yunoRaidPatch = { button = button, bg = bg, isParty = isParty }
+    health._inariRaidPatch = { button = button, bg = bg, isParty = isParty }
     HookRaidFrameBackground(button, health, bg, isParty)
 
-    if hooksecurefunc and not health._yunoRaidStatusColorHooked then
-        health._yunoRaidStatusColorHooked = true
+    if hooksecurefunc and not health._inariRaidStatusColorHooked then
+        health._inariRaidStatusColorHooked = true
         hooksecurefunc(health, "SetStatusBarColor", function(self)
-            local patch = self._yunoRaidPatch
+            local patch = self._inariRaidPatch
             if patch then
-                ApplyRaidFrameHealthPatch(patch.button, self, patch.bg, ResolveFrameUnit(patch.button) or self._yunoUnit, patch.isParty)
+                ApplyRaidFrameHealthPatch(patch.button, self, patch.bg, ResolveFrameUnit(patch.button) or self._inariUnit, patch.isParty)
             end
         end)
     end
@@ -721,9 +721,9 @@ local function RestoreRaidFrameButton(button, isParty)
     if not health then return end
 
     local bg = FindRaidFrameBackground(button)
-    health._yunoBg = bg
-    health._yunoBgOwner = button
-    health._yunoDarkModeOverride = IsRaidFrameDarkMode(isParty)
+    health._inariBg = bg
+    health._inariBgOwner = button
+    health._inariDarkModeOverride = IsRaidFrameDarkMode(isParty)
 
     RestoreRaidFrameBackground(health, isParty)
 
@@ -803,6 +803,6 @@ end
 ns.RestoreAll = RestoreAll
 ns.ReloadEllesmereFrames = ReloadEllesmereFrames
 ns.GetAppearanceMode = GetAppearanceMode
-ns.SetYunoAppearanceMode = SetYunoAppearanceMode
+ns.SetInariAppearanceMode = SetInariAppearanceMode
 ns.ApplyConfiguredProfileSettings = ApplyConfiguredProfileSettings
 ns.SetAllHealthOpacity = SetAllHealthOpacity
